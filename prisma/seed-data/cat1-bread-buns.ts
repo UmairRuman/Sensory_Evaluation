@@ -1,0 +1,106 @@
+import type { CategorySeed } from "./types";
+
+export const data: CategorySeed = {
+  key: "bread-buns",
+  title: "Bread & Buns",
+  products: [
+    { slug: "plain-bread", name: "Plain Bread" },
+    { slug: "milky-bread", name: "Milky Bread" },
+    { slug: "bran-bread", name: "Bran Bread" },
+    { slug: "wholewheat-bread", name: "Wholewheat Bread" },
+    { slug: "multigrain-bread", name: "Multigrain Bread" },
+    { slug: "burger-bun", name: "Burger Bun" },
+    { slug: "brioche-burger-bun", name: "Brioche Burger Bun" },
+    { slug: "potato-bun", name: "Potato Bun" },
+  ],
+  sections: [
+    {
+      letter: "A",
+      name: "Crust / Surface Appearance",
+      attributes: [
+        { slug: "surface-darkness", name: "Surface Darkness", low: "Too Light / Pale / Slightly Light", mid: "Target (Golden Brown)", high: "Slightly Dark / Very Dark / Burnt" },
+        { slug: "wrinkling-bursting", name: "Wrinkling / Bursting", low: "Highly Wrinkled / Slightly Wrinkled", mid: "Smooth", high: "Slightly Burst / Highly Burst" },
+        { slug: "risen-top-dome", name: "Risen Top / Dome", low: "Very Flat / Slightly Flat", mid: "Target", high: "Raised / Highly Raised / Split" },
+        { slug: "blistering", name: "Blistering", low: "Many Large Blisters / Few Large Blisters", mid: "No Blisters", high: "Few Small Blisters / Many Small Blisters" },
+        { slug: "crust-softness", name: "Crust Softness", low: "Very Soft / Fragile / Slightly Soft", mid: "Target", high: "Slightly Firm / Very Firm / Tough" },
+        { slug: "color-uniformity", name: "Color Uniformity", low: "Highly Uneven (Light) / Slightly Uneven (Light)", mid: "Uniform", high: "Slightly Uneven (Dark) / Highly Uneven (Dark)" },
+        { slug: "degree-of-recovery", name: "Degree of Recovery", low: "No Shape Recovery / Partial Recovery", mid: "Complete Recovery", high: "Slight Rebound / Strong Rebound" },
+        { slug: "rate-of-recovery", name: "Rate of Recovery", low: "Very Slow / Slow", mid: "Moderate", high: "Quick Rebound / Overly Fast" },
+        { slug: "shape-uniformity", name: "Shape Uniformity", low: "Very Irregular / Slightly Irregular", mid: "Target", high: "Slightly Distorted / Highly Distorted" },
+        { slug: "sesame-seed-coverage", name: "Sesame Seed Coverage", low: "No Seeds / Sparse Seeds", mid: "Uniform Seeds", high: "Slightly Clumped / Heavily Clumped", only: ["burger-bun"] },
+        { slug: "grain-seed-topping", name: "Grain / Seed Topping", low: "No Topping Visible / Sparse Topping", mid: "Uniform Topping", high: "Slightly Clumped / Heavily Clumped", only: ["multigrain-bread", "wholewheat-bread"] },
+      ],
+    },
+    {
+      letter: "B",
+      name: "Crumb / Internal Appearance",
+      attributes: [
+        { slug: "crumb-color", name: "Crumb Color", low: "Too Pale / White / Slightly Pale", mid: "Target (Cream / Off-White)", high: "Slightly Yellow / Tan / Too Dark / Tan" },
+        { slug: "cell-structure", name: "Cell Structure", low: "Too Porous / Open / Slightly Porous", mid: "Target (Even Cells)", high: "Slightly Dense / Too Dense / Compact" },
+        { slug: "cell-uniformity", name: "Cell Uniformity", low: "Highly Porous Patches / Slightly Porous Patches", mid: "Uniform", high: "Slightly Dense Patches / Highly Dense Patches" },
+        { slug: "springiness-buns", name: "Springiness (Buns)", low: "No Bounce / Collapsed / Low Springiness", mid: "Target", high: "Slightly Rubbery / Very Rubbery" },
+        { slug: "moist-appearance", name: "Moist Appearance", low: "Very Dry / Crumbly / Slightly Dry", mid: "Target (Moist Look)", high: "Slightly Moist / Wet / Gummy" },
+        { slug: "bran-distribution", name: "Bran Distribution", low: "No Bran Visible / Sparse Bran", mid: "Uniform Bran", high: "Slightly Concentrated / Heavily Concentrated", only: ["bran-bread"] },
+        { slug: "grain-inclusion", name: "Grain Inclusion", low: "No Grains Visible / Sparse Grains", mid: "Uniform Grains", high: "Slightly Clumped / Heavily Clumped", only: ["multigrain-bread", "wholewheat-bread"] },
+      ],
+    },
+    {
+      letter: "C",
+      name: "Aroma",
+      attributes: [
+        { slug: "milky-dairy-aroma", name: "Milky / Dairy Aroma", low: "No Dairy Aroma / Low Dairy Aroma", mid: "Target", high: "Slightly Strong / Very Strong" },
+        { slug: "grainy-wheat-aroma", name: "Grainy / Wheat Aroma", low: "No Grainy Aroma / Low Grainy Aroma", mid: "Target", high: "Slightly Strong / Raw Flour Aroma" },
+        { slug: "baked-aroma", name: "Baked Aroma", low: "Very Underbaked / Slightly Underbaked", mid: "Fresh Baked (Ideal)", high: "High Toasted Aroma / Burnt Aroma" },
+        { slug: "fermented-yeast-aroma", name: "Fermented / Yeast Aroma", low: "No Fermentation / Low Fermented", mid: "Target", high: "Slightly Strong / Pungent Yeasty Aroma" },
+        { slug: "buttery-egg-aroma", name: "Buttery / Egg Aroma", low: "No Buttery Aroma / Low Buttery Aroma", mid: "Target (Mild)", high: "Strong Buttery Aroma / Rancid / Eggy Aroma", only: ["brioche-burger-bun", "potato-bun"] },
+        { slug: "bran-nutty-aroma", name: "Bran / Nutty Aroma", low: "No Bran Aroma / Low Bran Aroma", mid: "Target", high: "Strong Bran Aroma / Raw Bran / Harsh", only: ["bran-bread", "wholewheat-bread", "multigrain-bread"] },
+        { slug: "oily-aroma", name: "Oily Aroma", low: "No Oily Aroma / Low Oily Aroma", mid: "Target", high: "Slightly Strong / Rancid Aroma" },
+      ],
+    },
+    {
+      letter: "D",
+      name: "Mouthfeel / Texture",
+      attributes: [
+        { slug: "moistness", name: "Moistness", low: "Very Dry / Dry", mid: "Target", high: "Moist / Very Moist / Gummy" },
+        { slug: "softness-initial-bite", name: "Softness (Initial Bite)", low: "Very Hard / Slightly Hard", mid: "Target (Soft)", high: "Slightly Soft / Mushy / Collapses" },
+        { slug: "stickiness-crumbliness", name: "Stickiness / Crumbliness", low: "Very Crumbly / Slightly Crumbly", mid: "Target", high: "Slightly Sticky / Very Sticky" },
+        { slug: "richness-melt", name: "Richness / Melt", low: "No Richness / Dry / Low Richness", mid: "Target (Slight Melt)", high: "Rich Coating / Excessively Fatty", only: ["brioche-burger-bun", "potato-bun"] },
+        { slug: "grain-texture", name: "Grain Texture", low: "No Grain Feel / Slight Grain Feel", mid: "Target (Pleasant)", high: "Noticeable Grains / Harsh / Gritty", only: ["multigrain-bread", "wholewheat-bread"] },
+        { slug: "effort-to-swallow", name: "Effort to Swallow", low: "Very Porous / Soft / Slightly Soft", mid: "Target", high: "Slightly Hard to Swallow / Very Hard to Swallow" },
+      ],
+    },
+    {
+      letter: "E",
+      name: "Taste",
+      attributes: [
+        { slug: "sweetness", name: "Sweetness", low: "Very Low / Low", mid: "Target Sweetness", high: "Slightly High / Overly Sweet" },
+        { slug: "saltiness", name: "Saltiness", low: "Very Low / Low", mid: "Target Salt Level", high: "Slightly High / Too Salty" },
+        { slug: "baked-taste", name: "Baked Taste", low: "No Baked Flavor / Slight Baked Flavor", mid: "Fresh Baked (Ideal)", high: "Strong Toasted / Burnt / Bitter" },
+        { slug: "fermented-taste", name: "Fermented Taste", low: "No Yeasty Taste / Low Yeasty Taste", mid: "Target", high: "Slightly Strong Yeast / Highly Fermented / Sour" },
+        { slug: "milky-taste", name: "Milky Taste", low: "No Milk Taste / Low Milk Taste", mid: "Target", high: "Strong Milky Taste / Overpowering / Artificial" },
+        { slug: "buttery-egg-taste", name: "Buttery / Egg Taste", low: "No Buttery Taste / Slight Buttery Taste", mid: "Target", high: "Strong Buttery Taste / Rancid / Eggy", only: ["brioche-burger-bun", "potato-bun"] },
+        { slug: "oily-fat-taste", name: "Oily / Fat Taste", low: "No Fat Taste / Slight Fat Taste", mid: "Clean Fat Taste", high: "Strong Fat Taste / Rancid / Oxidized" },
+        { slug: "grainy-wheat-taste", name: "Grainy / Wheat Taste", low: "No Grain Taste / Slight Grain Taste", mid: "Fresh Wheat Taste", high: "Strong Grain Taste / Raw Floury Taste" },
+        { slug: "bran-taste", name: "Bran Taste", low: "No Bran Taste / Low Bran Taste", mid: "Target", high: "Strong Bran Taste / Harsh / Bitter Bran", only: ["bran-bread", "wholewheat-bread", "multigrain-bread"] },
+      ],
+    },
+    {
+      letter: "F",
+      name: "Aftertaste",
+      attributes: [
+        { slug: "astringency", name: "Astringency", low: "Strong Puckering / Slight Puckering", mid: "Neutral", high: "Slight Mouth Coating / Strong Mouth Coating" },
+        { slug: "sweet-salt-balance", name: "Sweet–Salt Balance", low: "Very Sweet Aftertaste / Slightly Sweet", mid: "Balanced", high: "Slightly Bitter / Strong Bitter Aftertaste" },
+        { slug: "residue", name: "Residue", low: "Heavy Residue / Noticeable Residue", mid: "Clean", high: "Slightly Stripping (Dry) / Highly Stripping (Dry)" },
+        { slug: "bran-aftertaste", name: "Bran Aftertaste", low: "None / Slight", mid: "Target", high: "Noticeable / Strong / Harsh", only: ["bran-bread", "wholewheat-bread", "multigrain-bread"] },
+        { slug: "buttery-aftertaste", name: "Buttery Aftertaste", low: "None / Faint", mid: "Pleasant Lingering", high: "Strong / Rancid / Unpleasant", only: ["brioche-burger-bun", "potato-bun"] },
+      ],
+    },
+    {
+      letter: "G",
+      name: "Overall Hedonic",
+      attributes: [
+        { slug: "overall-liking", name: "Overall Liking", kind: "OVERALL_HEDONIC", low: "Unacceptable / Just OK", mid: "Target (Ideal)", high: "Just OK / Unacceptable" },
+      ],
+    },
+  ],
+};

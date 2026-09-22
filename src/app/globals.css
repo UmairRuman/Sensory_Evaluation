@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+/*
+ * DFCL Sensory Evaluation Software — design tokens.
+ * Evolves the maroon/gold identity from the original prototype into a full
+ * light/dark token system. Every color, radius, and shadow utility in the
+ * app should resolve through these variables — never a raw hex value.
+ */
+:root {
+  /* Brand */
+  --brand-primary: #7a1f2b;
+  --brand-primary-strong: #4f1119;
+  --brand-primary-soft: #f6e9e7;
+  --brand-accent: #c8983a;
+  --brand-accent-strong: #a97a26;
+  --brand-accent-soft: #f3e6c8;
+
+  /* Surface */
+  --surface: #faf7f2;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f2ece2;
+  --border: #e4d9c8;
+  --border-strong: #cdbba0;
+
+  /* Text */
+  --text: #241a17;
+  --text-muted: #746355;
+  --text-on-brand: #fffaf3;
+
+  /* Status (maps to the 1-2 / 3 / 4-5 below-target / target / above-target scale bands) */
+  --status-below: #b1502f;
+  --status-target: #2f7a4f;
+  --status-above: #b1502f;
+  --status-danger: #ae2a1f;
+  --status-warning: #92660f;
+
+  /* Elevation — soft, layered shadows rather than heavy drop shadows */
+  --shadow-xs: 0 1px 2px rgba(36, 26, 23, 0.06);
+  --shadow-sm: 0 2px 6px rgba(36, 26, 23, 0.07);
+  --shadow-md: 0 8px 24px -4px rgba(36, 26, 23, 0.14);
+  --shadow-lg: 0 24px 48px -12px rgba(36, 26, 23, 0.22);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+
+  /* Hero / feature gradients */
+  --gradient-hero: linear-gradient(135deg, #5c1620 0%, #7a1f2b 46%, #973325 100%);
+  --gradient-hero-sheen: radial-gradient(120% 140% at 100% 0%, rgba(200, 152, 58, 0.35) 0%, rgba(200, 152, 58, 0) 55%);
+
+  /* Density (repointed by [data-density="compact"]) */
+  --space-unit: 1rem;
+
+  /* Type */
+  --font-display: var(--font-fraunces), Georgia, "Iowan Old Style", serif;
+  --font-ui: var(--font-inter), -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  color-scheme: light;
+}
+
+:root[data-density="compact"] {
+  --space-unit: 0.75rem;
+}
+
+/*
+ * Light is the only active theme for now — no automatic OS-driven dark mode.
+ * The [data-theme="dark"] block below is kept as an explicit, opt-in future toggle
+ * (nothing currently sets that attribute, so it has no effect until a UI switch is added).
+ */
+:root[data-theme="dark"] {
+  --brand-primary: #d97b87;
+  --brand-primary-strong: #e79aa3;
+  --brand-primary-soft: #3a2226;
+  --brand-accent: #d9b567;
+  --brand-accent-strong: #e8c987;
+  --brand-accent-soft: #4a3f27;
+
+  --surface: #1c1613;
+  --surface-raised: #241c18;
+  --surface-sunken: #150f0d;
+  --border: #3a2f28;
+  --border-strong: #4d3f35;
+
+  --text: #f1eada;
+  --text-muted: #b5a695;
+  --text-on-brand: #1c1613;
+
+  --status-below: #e08a6d;
+  --status-target: #6fbf83;
+  --status-above: #e08a6d;
+  --status-danger: #e5837a;
+  --status-warning: #d9a441;
+
+  --gradient-hero: linear-gradient(135deg, #150f0d 0%, #3a1116 46%, #5c1c15 100%);
+  --gradient-hero-sheen: radial-gradient(120% 140% at 100% 0%, rgba(217, 181, 103, 0.22) 0%, rgba(217, 181, 103, 0) 55%);
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-strong: var(--brand-primary-strong);
+  --color-brand-primary-soft: var(--brand-primary-soft);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-strong: var(--brand-accent-strong);
+  --color-brand-accent-soft: var(--brand-accent-soft);
+
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-on-brand: var(--text-on-brand);
+
+  --color-status-below: var(--status-below);
+  --color-status-target: var(--status-target);
+  --color-status-above: var(--status-above);
+  --color-status-danger: var(--status-danger);
+  --color-status-warning: var(--status-warning);
+
+  --font-display: var(--font-display);
+  --font-ui: var(--font-ui);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-feature-settings: "cv11", "ss01";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--brand-accent-soft);
+  color: var(--brand-primary-strong);
+}
+
+.hero-surface {
+  background-image: var(--gradient-hero-sheen), var(--gradient-hero);
+}

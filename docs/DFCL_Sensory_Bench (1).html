@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>DFCL Sensory Bench</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --maroon:#7A1F2B;
+  --maroon-dark:#59151E;
+  --gold:#C89B3C;
+  --gold-light:#E8D6A8;
+  --paper:#FAF6EE;
+  --paper-dim:#F1EADA;
+  --ink:#2B211E;
+  --ink-soft:#6B5D53;
+  --line:#DCCFB8;
+  --below:#B5533C;
+  --target:#3E7A4C;
+  --above:#B5533C;
+  --white:#FFFFFF;
+  --radius:10px;
+  --shadow:0 2px 10px rgba(43,33,30,0.10);
+  --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+#app{max-width:520px;margin:0 auto;min-height:100vh;background:var(--paper);display:flex;flex-direction:column;position:relative;}
+
+/* ===== Header / chrome ===== */
+.topbar{
+  background:var(--maroon);
+  color:var(--gold-light);
+  padding:16px 18px 14px;
+  position:sticky;top:0;z-index:20;
+  box-shadow:0 2px 8px rgba(0,0,0,0.18);
+}
+.topbar .brand{
+  font-family:var(--serif);
+  font-size:12px;
+  letter-spacing:0.14em;
+  color:var(--gold);
+  margin:0 0 3px;
+  text-transform:uppercase;
+}
+.topbar h1{
+  font-family:var(--serif);
+  font-size:22px;
+  margin:0;
+  color:var(--white);
+  font-weight:600;
+  line-height:1.25;
+}
+.topbar .sub{
+  font-size:12.5px;
+  color:var(--gold-light);
+  opacity:0.85;
+  margin-top:3px;
+}
+.topbar-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.back-btn{
+  background:none;border:1px solid rgba(232,214,168,0.4);color:var(--gold-light);
+  border-radius:20px;padding:6px 13px;font-size:13px;cursor:pointer;font-family:var(--sans);
+  flex-shrink:0;
+}
+.back-btn:active{background:rgba(255,255,255,0.08);}
+
+/* ===== Layout ===== */
+.screen{padding:20px 18px 90px;flex:1;}
+.card{
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:18px;
+  margin-bottom:14px;
+  box-shadow:var(--shadow);
+}
+.card h2{font-family:var(--serif);font-size:17px;margin:0 0 4px;color:var(--maroon-dark);}
+.card p.hint{font-size:13px;color:var(--ink-soft);margin:0 0 12px;line-height:1.5;}
+.section-label{
+  font-family:var(--serif);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--ink-soft);margin:22px 0 8px;
+}
+.section-label:first-child{margin-top:0;}
+
+/* ===== Buttons ===== */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  font-family:var(--sans);font-size:15px;font-weight:600;
+  border-radius:9px;border:none;cursor:pointer;padding:13px 18px;
+  width:100%;
+}
+.btn-primary{background:var(--maroon);color:var(--white);}
+.btn-primary:active{background:var(--maroon-dark);}
+.btn-primary:disabled{background:#C9B8B8;cursor:not-allowed;}
+.btn-gold{background:var(--gold);color:var(--maroon-dark);}
+.btn-gold:active{background:#B78A2D;}
+.btn-outline{background:none;border:1.5px solid var(--maroon);color:var(--maroon);}
+.btn-outline:active{background:rgba(122,31,43,0.06);}
+.btn-ghost{background:none;color:var(--ink-soft);text-decoration:underline;padding:8px;font-weight:500;font-size:13.5px;}
+.btn-danger{background:none;color:var(--below);border:1.5px solid var(--below);}
+.btn-sm{padding:8px 12px;font-size:13px;width:auto;}
+.row-btns{display:flex;gap:10px;}
+.row-btns .btn{flex:1;}
+
+/* ===== Choice lists ===== */
+.choice-list{display:flex;flex-direction:column;gap:9px;}
+.choice{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  border:1.5px solid var(--line);border-radius:9px;padding:14px 15px;
+  background:var(--white);cursor:pointer;
+}
+.choice.selected{border-color:var(--maroon);background:#FBF1F2;}
+.choice .name{font-size:15px;font-weight:600;color:var(--ink);}
+.choice .meta{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+.choice .checkmark{
+  width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+}
+.choice.selected .checkmark{background:var(--maroon);border-color:var(--maroon);}
+.choice.selected .checkmark::after{content:'✓';color:white;font-size:12px;}
+
+/* ===== Form fields ===== */
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;letter-spacing:0.01em;}
+.field input[type=text],.field input[type=number],.field select,.field textarea{
+  width:100%;border:1.5px solid var(--line);border-radius:8px;padding:11px 12px;
+  font-size:15px;font-family:var(--sans);background:var(--white);color:var(--ink);
+}
+.field textarea{resize:vertical;min-height:60px;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--gold);outline-offset:1px;border-color:var(--maroon);}
+.gender-row{display:flex;gap:8px;}
+.gender-row button{
+  flex:1;padding:11px 6px;border-radius:8px;border:1.5px solid var(--line);background:var(--white);
+  font-size:13.5px;cursor:pointer;color:var(--ink);
+}
+.gender-row button.active{background:var(--maroon);border-color:var(--maroon);color:white;}
+
+/* ===== Tabs (parent parameters) ===== */
+.tabstrip{display:flex;gap:6px;overflow-x:auto;padding:2px 0 14px;-webkit-overflow-scrolling:touch;}
+.tabstrip::-webkit-scrollbar{display:none;}
+.tab{
+  flex-shrink:0;padding:9px 14px;border-radius:20px;font-size:13px;font-weight:600;
+  background:var(--paper-dim);color:var(--ink-soft);border:1.5px solid transparent;cursor:pointer;
+  white-space:nowrap;
+}
+.tab.active{background:var(--maroon);color:white;}
+.tab.done{border-color:var(--gold);}
+.tab.done::after{content:' ✓';font-size:11px;}
+
+/* ===== Attribute scoring card ===== */
+.attr-card{border:1px solid var(--line);border-radius:9px;padding:14px 14px 12px;margin-bottom:12px;background:var(--white);}
+.attr-card .attr-name{font-weight:700;font-size:14.5px;color:var(--ink);margin-bottom:9px;}
+.scale{display:flex;gap:5px;margin-bottom:8px;}
+.scale button{
+  flex:1;aspect-ratio:1;border-radius:8px;border:1.5px solid var(--line);background:var(--white);
+  font-size:16px;font-weight:700;color:var(--ink-soft);cursor:pointer;
+}
+.scale button.sel-below{background:var(--below);border-color:var(--below);color:white;}
+.scale button.sel-target{background:var(--target);border-color:var(--target);color:white;}
+.scale button.sel-above{background:var(--above);border-color:var(--above);color:white;}
+.descriptors{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-soft);gap:4px;line-height:1.3;}
+.descriptors span{flex:1;text-align:center;}
+.descriptors span:first-child{text-align:left;}
+.descriptors span:last-child{text-align:right;}
+
+/* personalize: attribute row w/ toggle */
+.pcard{display:flex;align-items:flex-start;gap:10px;border:1px solid var(--line);border-radius:8px;padding:11px 12px;margin-bottom:8px;background:var(--white);}
+.pcard.off{opacity:0.45;}
+.switch{width:38px;height:22px;border-radius:12px;background:var(--line);position:relative;flex-shrink:0;cursor:pointer;margin-top:2px;}
+.switch.on{background:var(--target);}
+.switch::after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:white;top:2px;left:2px;transition:left .15s;}
+.switch.on::after{left:18px;}
+.pcard .pname{font-size:14px;font-weight:600;}
+.pcard .pnote{font-size:11.5px;color:var(--ink-soft);margin-top:2px;line-height:1.4;}
+.section-toggle{display:flex;align-items:center;justify-content:space-between;background:var(--paper-dim);border-radius:8px;padding:10px 12px;margin:14px 0 8px;}
+.section-toggle .stitle{font-family:var(--serif);font-weight:700;font-size:14.5px;color:var(--maroon-dark);}
+
+/* ===== Sample chips ===== */
+.sample-list{display:flex;flex-direction:column;gap:8px;}
+.sample-row{display:flex;align-items:center;gap:8px;}
+.sample-row input{flex:1;}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;background:var(--paper-dim);border-radius:16px;
+  padding:6px 12px;font-size:12.5px;color:var(--ink);border:1px solid var(--line);
+}
+.chip .x{cursor:pointer;color:var(--below);font-weight:700;}
+
+/* ===== QR block ===== */
+.qr-wrap{text-align:center;padding:10px 0 4px;}
+.qr-wrap canvas{border:6px solid white;box-shadow:var(--shadow);border-radius:8px;}
+.code-display{
+  font-family:var(--serif);font-size:28px;letter-spacing:0.08em;color:var(--maroon-dark);
+  text-align:center;margin:14px 0 4px;font-weight:700;
+}
+.code-hint{text-align:center;font-size:12px;color:var(--ink-soft);margin-bottom:6px;}
+
+/* ===== Dashboard ===== */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px;}
+.stat-box{background:var(--paper-dim);border-radius:8px;padding:12px;text-align:center;}
+.stat-box .num{font-family:var(--serif);font-size:22px;font-weight:700;color:var(--maroon-dark);}
+.stat-box .lbl{font-size:11px;color:var(--ink-soft);margin-top:2px;text-transform:uppercase;letter-spacing:0.06em;}
+table.rank-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+table.rank-table th,table.rank-table td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--line);}
+table.rank-table th{font-size:10.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.04em;}
+table.rank-table td:first-child,table.rank-table th:first-child{text-align:left;}
+.rank-badge{display:inline-block;width:20px;height:20px;line-height:20px;border-radius:50%;background:var(--gold);color:var(--maroon-dark);font-weight:700;font-size:11px;}
+.panel-entry{border-bottom:1px solid var(--line);padding:10px 0;font-size:13px;}
+.panel-entry:last-child{border-bottom:none;}
+.panel-entry .pname{font-weight:700;}
+.panel-entry .pmeta{color:var(--ink-soft);font-size:11.5px;}
+canvas.chart-canvas{max-width:100%;}
+
+/* ===== Toast / empty ===== */
+.empty{text-align:center;padding:40px 20px;color:var(--ink-soft);}
+.empty .big{font-size:38px;margin-bottom:10px;}
+.toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:white;padding:10px 20px;border-radius:20px;font-size:13px;
+  z-index:100;box-shadow:var(--shadow);
+}
+.footer-bar{
+  position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);
+  padding:12px 18px;display:flex;gap:10px;z-index:15;
+}
+.progress-dots{display:flex;justify-content:center;gap:6px;margin:6px 0 2px;}
+.progress-dots span{width:6px;height:6px;border-radius:50%;background:var(--line);}
+.progress-dots span.on{background:var(--maroon);}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ============ EMBEDDED PERFORMA DATA ============ */
+const CATEGORIES = [{"key":"cat1","title":"Bread & Burger Buns","products":["Plain Bread","Milky Bread","Bran Bread","Wholewheat Bread","Multigrain Bread","Burger Bun","Brioche Burger Bun","Potato Bun"],"sections":[{"letter":"A","name":"Crust / Surface Appearance","attributes":[{"id":"cat1-A-1","name":"Surface Darkness","stars":0,"low":"Too Light / Pale / Slightly Light","mid":"Target (Golden Brown)","high":"Slightly Dark / Very Dark / Burnt"},{"id":"cat1-A-2","name":"Wrinkling / Bursting","stars":0,"low":"Highly Wrinkled / Slightly Wrinkled","mid":"Smooth","high":"Slightly Burst / Highly Burst"},{"id":"cat1-A-3","name":"Risen Top / Dome","stars":0,"low":"Very Flat / Slightly Flat","mid":"Target","high":"Raised / Highly Raised / Split"},{"id":"cat1-A-4","name":"Blistering","stars":0,"low":"Many Large Blisters / Few Large Blisters","mid":"No Blisters","high":"Few Small Blisters / Many Small Blisters"},{"id":"cat1-A-5","name":"Crust Softness","stars":0,"low":"Very Soft / Fragile / Slightly Soft","mid":"Target","high":"Slightly Firm / Very Firm / Tough"},{"id":"cat1-A-6","name":"Color Uniformity","stars":0,"low":"Highly Uneven (Light) / Slightly Uneven (Light)","mid":"Uniform","high":"Slightly Uneven (Dark) / Highly Uneven (Dark)"},{"id":"cat1-A-7","name":"Degree of Recovery","stars":0,"low":"No Shape Recovery / Partial Recovery","mid":"Complete Recovery","high":"Slight Rebound / Strong Rebound"},{"id":"cat1-A-8","name":"Rate of Recovery","stars":0,"low":"Very Slow / Slow","mid":"Moderate","high":"Quick Rebound / Overly Fast"},{"id":"cat1-A-9","name":"Shape Uniformity","stars":0,"low":"Very Irregular / Slightly Irregular","mid":"Target","high":"Slightly Distorted / Highly Distorted"},{"id":"cat1-A-10","name":"Sesame Seed Coverage","stars":1,"low":"No Seeds / Sparse Seeds","mid":"Uniform Seeds","high":"Slightly Clumped / Heavily Clumped"},{"id":"cat1-A-11","name":"Grain / Seed Topping","stars":2,"low":"No Topping Visible / Sparse Topping","mid":"Uniform Topping","high":"Slightly Clumped / Heavily Clumped"}],"notes":[{"stars":1,"text":"Sesame Seed Coverage: standard Burger Bun only."},{"stars":2,"text":"Grain / Seed Topping: Multigrain Bread & Wholewheat Bread with visible topping only."}]},{"letter":"B","name":"Crumb / Internal Appearance","attributes":[{"id":"cat1-B-12","name":"Crumb Color","stars":0,"low":"Too Pale / White / Slightly Pale","mid":"Target (Cream / Off-White)","high":"Slightly Yellow / Tan / Too Dark / Tan"},{"id":"cat1-B-13","name":"Cell Structure","stars":0,"low":"Too Porous / Open / Slightly Porous","mid":"Target (Even Cells)","high":"Slightly Dense / Too Dense / Compact"},{"id":"cat1-B-14","name":"Cell Uniformity","stars":0,"low":"Highly Porous Patches / Slightly Porous Patches","mid":"Uniform","high":"Slightly Dense Patches / Highly Dense Patches"},{"id":"cat1-B-15","name":"Springiness (Buns)","stars":0,"low":"No Bounce / Collapsed / Low Springiness","mid":"Target","high":"Slightly Rubbery / Very Rubbery"},{"id":"cat1-B-16","name":"Moist Appearance","stars":0,"low":"Very Dry / Crumbly / Slightly Dry","mid":"Target (Moist Look)","high":"Slightly Moist / Wet / Gummy"},{"id":"cat1-B-17","name":"Bran Distribution","stars":3,"low":"No Bran Visible / Sparse Bran","mid":"Uniform Bran","high":"Slightly Concentrated / Heavily Concentrated"},{"id":"cat1-B-18","name":"Grain Inclusion","stars":4,"low":"No Grains Visible / Sparse Grains","mid":"Uniform Grains","high":"Slightly Clumped / Heavily Clumped"}],"notes":[{"stars":3,"text":"Bran Distribution: Bran Bread only."},{"stars":4,"text":"Grain Inclusion: Multigrain & Wholewheat Bread only."}]},{"letter":"C","name":"Aroma","attributes":[{"id":"cat1-C-19","name":"Milky / Dairy Aroma","stars":0,"low":"No Dairy Aroma / Low Dairy Aroma","mid":"Target","high":"Slightly Strong / Very Strong"},{"id":"cat1-C-20","name":"Grainy / Wheat Aroma","stars":0,"low":"No Grainy Aroma / Low Grainy Aroma","mid":"Target","high":"Slightly Strong / Raw Flour Aroma"},{"id":"cat1-C-21","name":"Baked Aroma","stars":0,"low":"Very Underbaked / Slightly Underbaked","mid":"Fresh Baked (Ideal)","high":"High Toasted Aroma / Burnt Aroma"},{"id":"cat1-C-22","name":"Fermented / Yeast Aroma","stars":0,"low":"No Fermentation / Low Fermented","mid":"Target","high":"Slightly Strong / Pungent Yeasty Aroma"},{"id":"cat1-C-23","name":"Buttery / Egg Aroma","stars":1,"low":"No Buttery Aroma / Low Buttery Aroma","mid":"Target (Mild)","high":"Strong Buttery Aroma / Rancid / Eggy Aroma"},{"id":"cat1-C-24","name":"Bran / Nutty Aroma","stars":2,"low":"No Bran Aroma / Low Bran Aroma","mid":"Target","high":"Strong Bran Aroma / Raw Bran / Harsh"},{"id":"cat1-C-25","name":"Oily Aroma","stars":0,"low":"No Oily Aroma / Low Oily Aroma","mid":"Target","high":"Slightly Strong / Rancid Aroma"}],"notes":[{"stars":1,"text":"Buttery / Egg Aroma: Brioche Burger Bun & Potato Bun (positive attribute)."},{"stars":2,"text":"Bran / Nutty Aroma: Bran Bread, Wholewheat & Multigrain only."}]},{"letter":"D","name":"Mouthfeel / Texture","attributes":[{"id":"cat1-D-26","name":"Moistness","stars":0,"low":"Very Dry / Dry","mid":"Target","high":"Moist / Very Moist / Gummy"},{"id":"cat1-D-27","name":"Softness (Initial Bite)","stars":0,"low":"Very Hard / Slightly Hard","mid":"Target (Soft)","high":"Slightly Soft / Mushy / Collapses"},{"id":"cat1-D-28","name":"Stickiness / Crumbliness","stars":0,"low":"Very Crumbly / Slightly Crumbly","mid":"Target","high":"Slightly Sticky / Very Sticky"},{"id":"cat1-D-29","name":"Richness / Melt","stars":1,"low":"No Richness / Dry / Low Richness","mid":"Target (Slight Melt)","high":"Rich Coating / Excessively Fatty"},{"id":"cat1-D-30","name":"Grain Texture","stars":2,"low":"No Grain Feel / Slight Grain Feel","mid":"Target (Pleasant)","high":"Noticeable Grains / Harsh / Gritty"},{"id":"cat1-D-31","name":"Effort to Swallow","stars":0,"low":"Very Porous / Soft / Slightly Soft","mid":"Target","high":"Slightly Hard to Swallow / Very Hard to Swallow"}],"notes":[{"stars":1,"text":"Richness / Melt: Brioche Burger Bun & Potato Bun (due to butter / egg / potato content)."},{"stars":2,"text":"Grain Texture: Multigrain & Wholewheat Bread only."}]},{"letter":"E","name":"Taste","attributes":[{"id":"cat1-E-32","name":"Sweetness","stars":0,"low":"Very Low / Low","mid":"Target Sweetness","high":"Slightly High / Overly Sweet"},{"id":"cat1-E-33","name":"Saltiness","stars":0,"low":"Very Low / Low","mid":"Target Salt Level","high":"Slightly High / Too Salty"},{"id":"cat1-E-34","name":"Baked Taste","stars":0,"low":"No Baked Flavor / Slight Baked Flavor","mid":"Fresh Baked (Ideal)","high":"Strong Toasted / Burnt / Bitter"},{"id":"cat1-E-35","name":"Fermented Taste","stars":0,"low":"No Yeasty Taste / Low Yeasty Taste","mid":"Target","high":"Slightly Strong Yeast / Highly Fermented / Sour"},{"id":"cat1-E-36","name":"Milky Taste","stars":0,"low":"No Milk Taste / Low Milk Taste","mid":"Target","high":"Strong Milky Taste / Overpowering / Artificial"},{"id":"cat1-E-37","name":"Buttery / Egg Taste","stars":1,"low":"No Buttery Taste / Slight Buttery Taste","mid":"Target","high":"Strong Buttery Taste / Rancid / Eggy"},{"id":"cat1-E-38","name":"Oily / Fat Taste","stars":0,"low":"No Fat Taste / Slight Fat Taste","mid":"Clean Fat Taste","high":"Strong Fat Taste / Rancid / Oxidized"},{"id":"cat1-E-39","name":"Grainy / Wheat Taste","stars":0,"low":"No Grain Taste / Slight Grain Taste","mid":"Fresh Wheat Taste","high":"Strong Grain Taste / Raw Floury Taste"},{"id":"cat1-E-40","name":"Bran Taste","stars":2,"low":"No Bran Taste / Low Bran Taste","mid":"Target","high":"Strong Bran Taste / Harsh / Bitter Bran"}],"notes":[{"stars":1,"text":"Buttery / Egg Taste: Brioche Burger Bun & Potato Bun (key positive attribute)."},{"stars":2,"text":"Bran Taste: Bran Bread, Wholewheat & Multigrain only."}]},{"letter":"F","name":"Aftertaste","attributes":[{"id":"cat1-F-41","name":"Astringency","stars":0,"low":"Strong Puckering / Slight Puckering","mid":"Neutral","high":"Slight Mouth Coating / Strong Mouth Coating"},{"id":"cat1-F-42","name":"Sweet–Salt Balance","stars":0,"low":"Very Sweet Aftertaste / Slightly Sweet","mid":"Balanced","high":"Slightly bitter / Strong bitter Aftertaste"},{"id":"cat1-F-43","name":"Residue","stars":0,"low":"Heavy Residue / Noticeable Residue","mid":"Clean","high":"Slightly Stripping (Dry) / Highly Stripping (Dry)"},{"id":"cat1-F-44","name":"Bran Aftertaste","stars":1,"low":"None / Slight","mid":"Target","high":"Noticeable / Strong / Harsh"},{"id":"cat1-F-45","name":"Buttery Aftertaste","stars":2,"low":"None / Faint","mid":"Pleasant Lingering","high":"Strong / Rancid / Unpleasant"}],"notes":[{"stars":1,"text":"Bran Aftertaste: Bran Bread, Wholewheat & Multigrain only."},{"stars":2,"text":"Buttery Aftertaste: Brioche Burger Bun & Potato Bun only."}]},{"letter":"G","name":"Overall","attributes":[{"id":"cat1-G-1","name":"Overall Liking","stars":0,"low":"Unacceptable / Just OK","mid":"Target (Ideal)","high":"Just OK / Unacceptable"}],"notes":[]}]},{"key":"cat2","title":"Shawarma & Tortilla","products":["Shawarma","Tortilla"],"sections":[{"letter":"A","name":"Surface Appearance","attributes":[{"id":"cat2-A-1","name":"Surface Color","stars":0,"low":"Too Pale / White / Slightly Pale","mid":"Target (Light Golden)","high":"Slightly Dark / Very Dark / Burnt Spots"},{"id":"cat2-A-2","name":"Color Uniformity","stars":0,"low":"Highly Uneven (Light) / Slightly Uneven","mid":"Uniform","high":"Slightly Uneven (Dark) / Highly Uneven (Dark)"},{"id":"cat2-A-3","name":"Surface Blistering","stars":0,"low":"Many Large Blisters / Few Large Blisters","mid":"No / Few Tiny Blisters","high":"Few Small Blisters / Many Small Blisters"},{"id":"cat2-A-4","name":"Char Spots","stars":1,"low":"No Char / 1–2 Tiny Spots","mid":"Target (Few Char Spots)","high":"Several Char Spots / Heavily Charred"},{"id":"cat2-A-5","name":"Shape Uniformity","stars":0,"low":"Very Irregular / Torn / Slightly Irregular","mid":"Target (Round / Oval)","high":"Slightly Distorted / Highly Distorted"},{"id":"cat2-A-6","name":"Thickness Consistency","stars":0,"low":"Too Thin / Transparent / Slightly Thin","mid":"Target Thickness","high":"Slightly Thick / Too Thick / Doughy"},{"id":"cat2-A-7","name":"Surface Texture","stars":0,"low":"Very Rough / Cracked / Slightly Rough","mid":"Smooth","high":"Slightly Papery / Very Papery / Brittle"}],"notes":[{"stars":1,"text":"Char Spots: characteristic / acceptable for Shawarma; should be absent or minimal for Tortilla."}]},{"letter":"B","name":"Internal Structure","attributes":[{"id":"cat2-B-8","name":"Internal Color","stars":0,"low":"Too Dark / Grey / Slightly Dark","mid":"Target (Cream / Off-White)","high":"Slightly Yellow / Too Yellow"},{"id":"cat2-B-9","name":"Layering","stars":0,"low":"No Layers (Dense) / Slight Layering","mid":"Target (Distinct Layers)","high":"Slightly Open / Very Open / Air Pockets"},{"id":"cat2-B-10","name":"Moisture Appearance","stars":0,"low":"Very Dry / Cracked / Slightly Dry","mid":"Target (Flexible Look)","high":"Slightly Moist / Wet / Clammy"}],"notes":[]},{"letter":"C","name":"Aroma","attributes":[{"id":"cat2-C-11","name":"Baked / Roasted Aroma","stars":0,"low":"Very Underbaked / Slightly Underbaked","mid":"Fresh Baked (Ideal)","high":"Toasted Aroma / Burnt Aroma"},{"id":"cat2-C-12","name":"Wheat / Dough Aroma","stars":0,"low":"No Wheat Aroma / Low Wheat Aroma","mid":"Target","high":"Strong Wheat Aroma / Raw Flour Aroma"},{"id":"cat2-C-13","name":"Char / Smoky Aroma","stars":1,"low":"No Smoky Aroma / Slight Smoky Aroma","mid":"Target (Mild Char)","high":"Strong Smoky Aroma / Acrid / Overpowering"},{"id":"cat2-C-14","name":"Oily Aroma","stars":0,"low":"No Oily Aroma / Low Oily Aroma","mid":"Target","high":"Slightly Strong / Rancid Aroma"},{"id":"cat2-C-15","name":"Fermented Aroma","stars":0,"low":"No Fermented Aroma / Low Fermented Aroma","mid":"Target","high":"Slightly Strong / Sour / Pungent Aroma"}],"notes":[{"stars":1,"text":"Char / Smoky Aroma: characteristic for Shawarma; should be absent in Tortilla."}]},{"letter":"D","name":"Mouthfeel / Texture","attributes":[{"id":"cat2-D-16","name":"Flexibility / Pliability","stars":0,"low":"Very Stiff / Cracks / Slightly Stiff","mid":"Target (Flexible)","high":"Slightly Limp / Very Limp / Tears Easily"},{"id":"cat2-D-17","name":"Softness (Initial Bite)","stars":0,"low":"Very Hard / Tough / Slightly Hard","mid":"Target (Soft & Chewy)","high":"Slightly Soft / Mushy / Falls Apart"},{"id":"cat2-D-18","name":"Chewiness","stars":0,"low":"Very Tough / Rubbery / Slightly Chewy","mid":"Target","high":"Slightly Easy / Falls Apart / No Chew"},{"id":"cat2-D-19","name":"Moistness","stars":0,"low":"Very Dry / Slightly Dry","mid":"Target","high":"Slightly Moist / Wet / Clammy"},{"id":"cat2-D-20","name":"Oiliness / Fat Coating","stars":0,"low":"No Fat Coating / Slight Coating","mid":"Target","high":"Strong Coating / Excessively Greasy"},{"id":"cat2-D-21","name":"Effort to Swallow","stars":0,"low":"Very Difficult / Slightly Difficult","mid":"Target","high":"Slightly Easy / Very Easy (Too Soft)"}],"notes":[]},{"letter":"E","name":"Taste","attributes":[{"id":"cat2-E-22","name":"Saltiness","stars":0,"low":"No Salt / Low Salt","mid":"Target Salt Level","high":"Slightly Salty / Too Salty"},{"id":"cat2-E-23","name":"Sweetness","stars":0,"low":"No Sweetness / Low Sweetness","mid":"Target","high":"Slightly Sweet / Overly Sweet"},{"id":"cat2-E-24","name":"Baked / Wheat Flavor","stars":0,"low":"No Baked Flavor / Slight Baked Flavor","mid":"Fresh Baked (Ideal)","high":"Strong Toasted / Burnt / Bitter"},{"id":"cat2-E-25","name":"Char / Smoky Flavor","stars":1,"low":"No Char Flavor / Faint Char Flavor","mid":"Target (Mild Char)","high":"Strong Char Flavor / Acrid / Bitter"},{"id":"cat2-E-26","name":"Oily / Fat Taste","stars":0,"low":"No Fat Taste / Slight Fat Taste","mid":"Clean Fat Taste","high":"Strong Fat Taste / Rancid / Oxidized"},{"id":"cat2-E-27","name":"Fermented Taste","stars":0,"low":"No Fermented Taste / Low Fermented Taste","mid":"Target","high":"Slightly Strong Yeast / Sour / Off Taste"}],"notes":[{"stars":1,"text":"Char / Smoky Flavor: characteristic / positive for Shawarma; evaluate absence for Tortilla."}]},{"letter":"F","name":"Aftertaste","attributes":[{"id":"cat2-F-28","name":"Astringency","stars":0,"low":"Strong Puckering / Slight Puckering","mid":"Neutral","high":"Slight Mouth Coating / Strong Mouth Coating"},{"id":"cat2-F-29","name":"Residue","stars":0,"low":"Heavy Residue / Noticeable Residue","mid":"Clean","high":"Slightly Stripping (Dry) / Highly Stripping (Dry)"},{"id":"cat2-F-30","name":"Oily Aftertaste","stars":0,"low":"No Oily Aftertaste / Faint Oily Coating","mid":"Mild (Target)","high":"Strong Oily Coating / Rancid Lingering"},{"id":"cat2-F-31","name":"Char Aftertaste","stars":1,"low":"None / Faint","mid":"Mild (Target — Shawarma)","high":"Strong / Acrid / Unpleasant"}],"notes":[{"stars":1,"text":"Char Aftertaste: mild lingering acceptable for Shawarma; should be clean for Tortilla."}]},{"letter":"G","name":"Overall","attributes":[{"id":"cat2-G-1","name":"Overall Liking","stars":0,"low":"Unacceptable / Just OK","mid":"Target (Ideal)","high":"Just OK / Unacceptable"}],"notes":[]}]},{"key":"cat3","title":"Parathas, Naan & Sheermal","products":["Naan","Roghni Naan","Sheermal","Paratha Plain","Paratha Aloo","Paratha Chicken","Paratha Cheese Chicken","Paratha Vegetable"],"sections":[{"letter":"A","name":"Surface / Crust Appearance","attributes":[{"id":"cat3-A-1","name":"Surface Color / Darkness","stars":0,"low":"Too Light / Pale / Slightly Light","mid":"Target (Golden Brown)","high":"Slightly Dark / Very Dark / Burnt"},{"id":"cat3-A-2","name":"Color Uniformity","stars":0,"low":"Highly Uneven (Light) / Slightly Uneven","mid":"Uniform","high":"Slightly Uneven (Dark) / Highly Uneven (Dark)"},{"id":"cat3-A-3","name":"Surface Layering / Flakiness","stars":1,"low":"No Layers Visible / Slight Layering","mid":"Target (Distinct Layers)","high":"Slightly Over-Layered / Excessively Flaky"},{"id":"cat3-A-4","name":"Surface Blistering","stars":0,"low":"Many Large Blisters / Few Large Blisters","mid":"No Blisters","high":"Few Small Blisters / Many Small Blisters"},{"id":"cat3-A-5","name":"Oiliness / Ghee Sheen","stars":2,"low":"No Sheen / Dry / Low Sheen","mid":"Target Sheen","high":"Slightly Greasy / Excessively Greasy"},{"id":"cat3-A-6","name":"Shape Uniformity","stars":0,"low":"Very Irregular / Slightly Irregular","mid":"Target (Round / Oval)","high":"Slightly Distorted / Highly Distorted"},{"id":"cat3-A-7","name":"Thickness Consistency","stars":0,"low":"Too Thin / Translucent / Slightly Thin","mid":"Target Thickness","high":"Slightly Thick / Too Thick / Doughy"},{"id":"cat3-A-8","name":"Topping / Garnish","stars":3,"low":"No Topping Visible / Sparse Topping","mid":"Uniform Topping","high":"Slightly Clumped / Heavily Clumped / Excess"}],"notes":[{"stars":1,"text":"Layering / Flakiness: Parathas only."},{"stars":2,"text":"Ghee Sheen: Parathas & Sheermal; for Naan evaluate surface moisture."},{"stars":3,"text":"Toppings: Sesame / Nigella seeds for Roghni Naan; Saffron glaze for Sheermal."}]},{"letter":"B","name":"Internal Structure / Crumb","attributes":[{"id":"cat3-B-9","name":"Internal Color","stars":0,"low":"Too Pale / White / Slightly Pale","mid":"Target (Creamy White)","high":"Slightly Yellow / Too Dark / Yellow"},{"id":"cat3-B-10","name":"Cell / Layer Structure","stars":0,"low":"Very Dense / Compact / Slightly Dense","mid":"Target (Even Layers)","high":"Slightly Open / Very Open / Hollow"},{"id":"cat3-B-11","name":"Dough Layering","stars":1,"low":"No Layering / Slight Layering","mid":"Target (Distinct Layers)","high":"Slightly Uneven / Uneven / Torn Layers"},{"id":"cat3-B-12","name":"Filling Distribution","stars":4,"low":"Filling Absent / Missed / Slightly Uneven","mid":"Uniform Distribution","high":"Slightly Concentrated / Heavily One-Sided"},{"id":"cat3-B-13","name":"Moisture Appearance","stars":0,"low":"Very Dry / Crumbly / Slightly Dry","mid":"Target (Moist Look)","high":"Slightly Moist / Wet / Gummy Appearance"}],"notes":[{"stars":1,"text":"Dough Layering: Parathas only."},{"stars":4,"text":"Filling Distribution: Aloo, Chicken, Vegetable & Cheese Chicken Paratha only."}]},{"letter":"C","name":"Aroma","attributes":[{"id":"cat3-C-14","name":"Baked / Roasted Aroma","stars":0,"low":"Underbaked Aroma / Slightly Underbaked","mid":"Fresh Baked (Ideal)","high":"Toasted Aroma / Burnt Aroma"},{"id":"cat3-C-15","name":"Ghee / Oily Aroma","stars":0,"low":"No Ghee Aroma / Low Ghee Aroma","mid":"Target (Mild Ghee)","high":"Strong Ghee Aroma / Rancid / Oxidized"},{"id":"cat3-C-16","name":"Dough / Grainy Aroma","stars":0,"low":"No Dough Aroma / Low Dough Aroma","mid":"Target","high":"Strong Grainy Aroma / Raw Flour Aroma"},{"id":"cat3-C-17","name":"Fermented / Yeast Aroma","stars":2,"low":"No Yeasty Aroma / Low Yeasty Aroma","mid":"Target","high":"Strong Yeasty Aroma / Pungent Yeasty Aroma"},{"id":"cat3-C-18","name":"Filling Aroma","stars":4,"low":"No Filling Aroma / Weak Filling Aroma","mid":"Target (Pleasant)","high":"Strong Filling Aroma / Off / Pungent Aroma"},{"id":"cat3-C-19","name":"Sweet / Milky Aroma","stars":1,"low":"No Sweet Aroma / Low Sweet Aroma","mid":"Target","high":"Strong Sweet Aroma / Artificial / Sickly Sweet"},{"id":"cat3-C-20","name":"Saffron / Floral Aroma","stars":3,"low":"No Saffron Aroma / Weak Saffron Aroma","mid":"Target","high":"Strong Saffron Aroma / Artificial / Overpowering"}],"notes":[{"stars":1,"text":"Sweet / Milky Aroma: Sheermal primarily."},{"stars":2,"text":"Fermented / Yeast Aroma: Naan & Roghni Naan only."},{"stars":3,"text":"Saffron / Floral Aroma: Sheermal & Roghni Naan only."},{"stars":4,"text":"Filling Aroma: Filled Parathas only."}]},{"letter":"D","name":"Texture / Mouthfeel","attributes":[{"id":"cat3-D-21","name":"Softness (Initial Bite)","stars":0,"low":"Very Hard / Tough / Slightly Hard","mid":"Target (Soft & Pliable)","high":"Slightly Soft / Mushy / Collapses"},{"id":"cat3-D-22","name":"Flakiness / Layered Texture","stars":1,"low":"No Flakiness / Slight Flakiness","mid":"Target (Crisp Layers)","high":"Slightly Over-Flaky / Crumbles Excessively"},{"id":"cat3-D-23","name":"Chewiness","stars":0,"low":"Very Tough / Rubbery / Slightly Chewy","mid":"Target","high":"Slightly Easy / Falls Apart / No Chew"},{"id":"cat3-D-24","name":"Moistness","stars":0,"low":"Very Dry / Slightly Dry","mid":"Target (Moist)","high":"Moist / Wet / Greasy"},{"id":"cat3-D-25","name":"Oiliness / Ghee Coating","stars":0,"low":"No Fat Coating / Slight Fat Coating","mid":"Target","high":"Strong Fat Coating / Excessively Greasy"},{"id":"cat3-D-26","name":"Stickiness","stars":0,"low":"No Stickiness / Slightly Sticky","mid":"Target","high":"Sticky / Highly Sticky / Gummy"},{"id":"cat3-D-27","name":"Filling Texture","stars":4,"low":"Dry / Crumbly Filling / Slightly Dry","mid":"Target (Moist, Cohesive)","high":"Slightly Wet / Watery / Soggy Filling"},{"id":"cat3-D-28","name":"Effort to Swallow","stars":0,"low":"Very Easy (Too Soft) / Easy","mid":"Target","high":"Slightly Difficult / Very Difficult"}],"notes":[{"stars":1,"text":"Flakiness: Parathas only."},{"stars":4,"text":"Filling Texture: Filled Parathas only."}]},{"letter":"E","name":"Taste","attributes":[{"id":"cat3-E-29","name":"Saltiness","stars":0,"low":"No Salt Taste / Low Salt","mid":"Target Salt Level","high":"Slightly High Salt / Too Salty"},{"id":"cat3-E-30","name":"Sweetness","stars":1,"low":"No Sweetness / Low Sweetness","mid":"Target Sweetness","high":"Slightly Sweet / Overly Sweet"},{"id":"cat3-E-31","name":"Baked / Roasted Flavor","stars":0,"low":"No Baked Flavor / Slight Baked Flavor","mid":"Fresh Baked (Ideal)","high":"Strong Toasted Flavor / Burnt / Bitter Flavor"},{"id":"cat3-E-32","name":"Ghee / Fat Taste","stars":0,"low":"No Fat Taste / Slight Fat Taste","mid":"Clean Fat Taste","high":"Strong Fat Taste / Rancid / Oxidized"},{"id":"cat3-E-33","name":"Dough / Wheat Flavor","stars":0,"low":"No Grain Taste / Slight Grain Taste","mid":"Fresh Wheat Taste","high":"Strong Grain Taste / Raw Floury Taste"},{"id":"cat3-E-34","name":"Fermented / Yeast Taste","stars":2,"low":"No Yeasty Taste / Low Yeasty Taste","mid":"Target","high":"Strong Yeasty Taste / Sour / Over-Fermented"},{"id":"cat3-E-35","name":"Filling Taste","stars":4,"low":"No Filling Flavor / Weak Filling Flavor","mid":"Target (Well-Seasoned)","high":"Strong Filling Flavor / Overpowering / Off"},{"id":"cat3-E-36","name":"Milky / Sweet Base Taste","stars":1,"low":"No Milky Taste / Low Milky Taste","mid":"Target","high":"Strong Milky Taste / Artificial / Cloying"},{"id":"cat3-E-37","name":"Saffron / Floral Taste","stars":3,"low":"No Saffron Taste / Weak Saffron Taste","mid":"Target","high":"Strong Saffron Taste / Artificial / Bitter"}],"notes":[{"stars":1,"text":"Sweetness & Milky/Sweet Base: Sheermal primary; Roghni Naan secondary."},{"stars":2,"text":"Fermented / Yeast Taste: Naan & Roghni Naan only."},{"stars":3,"text":"Saffron / Floral Taste: Sheermal & Roghni Naan."},{"stars":4,"text":"Filling Taste: Filled Parathas only."}]},{"letter":"F","name":"Aftertaste","attributes":[{"id":"cat3-F-38","name":"Astringency","stars":0,"low":"Strong Puckering / Slight Puckering","mid":"Neutral","high":"Slight Mouth Coating / Strong Mouth Coating"},{"id":"cat3-F-39","name":"Sweet–Salt Balance","stars":0,"low":"Very Sweet Aftertaste / Slightly Sweet","mid":"Balanced","high":"Slightly Salty / Strong Salty Aftertaste"},{"id":"cat3-F-40","name":"Residue","stars":0,"low":"Heavy Residue / Noticeable Residue","mid":"Clean","high":"Slightly Stripping / Highly Stripping (Dry)"},{"id":"cat3-F-41","name":"Oily / Ghee Aftertaste","stars":0,"low":"No Oily Aftertaste / Slight Oily Coating","mid":"Target (Mild)","high":"Strong Oily Coating / Rancid Lingering"},{"id":"cat3-F-42","name":"Filling Aftertaste","stars":4,"low":"No Filling Aftertaste / Faint Aftertaste","mid":"Pleasant Lingering","high":"Strong Aftertaste / Off / Pungent"}],"notes":[{"stars":4,"text":"Filling Aftertaste: Filled Parathas only."}]},{"letter":"G","name":"Overall","attributes":[{"id":"cat3-G-1","name":"Overall Liking","stars":0,"low":"Unacceptable / Just OK","mid":"Target (Ideal)","high":"Just OK / Unacceptable"}],"notes":[]}]},{"key":"cat4","title":"Samosas","products":["Aloo Samosa","Chicken Samosa"],"sections":[{"letter":"A","name":"Shell / Crust Appearance","attributes":[{"id":"cat4-A-1","name":"Shell Color","stars":0,"low":"Too Pale / Unfried / Slightly Pale","mid":"Target (Golden Brown)","high":"Slightly Dark / Very Dark / Burnt"},{"id":"cat4-A-2","name":"Color Uniformity","stars":0,"low":"Highly Uneven (Pale) / Slightly Uneven","mid":"Uniform","high":"Slightly Uneven (Dark) / Highly Uneven (Burnt)"},{"id":"cat4-A-3","name":"Surface Texture / Blistering","stars":0,"low":"Very Smooth / No Bubbles / Slight Blistering","mid":"Target (Light Blisters)","high":"Heavy Blistering / Rough / Cracked Shell"},{"id":"cat4-A-4","name":"Shell Integrity","stars":0,"low":"Burst Open / Torn / Slightly Open at Seam","mid":"Intact & Sealed","high":"Slightly Over-Sealed / Very Thick Sealed Edge"},{"id":"cat4-A-5","name":"Shape Uniformity","stars":0,"low":"Very Irregular / Slightly Irregular","mid":"Target (Triangle / Cone)","high":"Slightly Distorted / Highly Distorted"},{"id":"cat4-A-6","name":"Oiliness (External)","stars":0,"low":"No Oiliness (Dry) / Slight Oiliness","mid":"Target (Light Sheen)","high":"Oily / Excessively Oily / Greasy"},{"id":"cat4-A-7","name":"Size Consistency","stars":0,"low":"Much Smaller / Slightly Small","mid":"Target Size","high":"Slightly Large / Much Larger"}],"notes":[]},{"letter":"B","name":"Shell / Pastry Texture","attributes":[{"id":"cat4-B-8","name":"Crispness","stars":0,"low":"Not Crisp / Soggy / Slightly Soft","mid":"Target (Crisp)","high":"Very Crisp / Excessively Hard / Brittle"},{"id":"cat4-B-9","name":"Shell Thickness","stars":0,"low":"Too Thin / Fragile / Slightly Thin","mid":"Target Thickness","high":"Slightly Thick / Too Thick / Doughy"},{"id":"cat4-B-10","name":"Flakiness","stars":0,"low":"No Flakiness / Slight Flakiness","mid":"Target (Distinct Layers)","high":"Slightly Over-Flaky / Crumbles Excessively"},{"id":"cat4-B-11","name":"Bite-Through Effort","stars":0,"low":"Very Hard / Tough / Slightly Hard","mid":"Target (Clean Break)","high":"Slightly Easy / Falls Apart on Bite"},{"id":"cat4-B-12","name":"Oil Absorption","stars":0,"low":"Very Dry / No Oil / Low Oil Absorption","mid":"Target","high":"High Oil Absorption / Excessively Greasy / Soggy"}],"notes":[]},{"letter":"C","name":"Filling Appearance","attributes":[{"id":"cat4-C-13","name":"Filling Quantity","stars":0,"low":"No Filling / Empty / Very Little Filling","mid":"Target (Well-Filled)","high":"Overfilled (Bursting) / Excessively Overfilled"},{"id":"cat4-C-14","name":"Filling Distribution","stars":0,"low":"All Filling One Side / Slightly Uneven","mid":"Uniform Distribution","high":"Slightly Concentrated / Heavily Concentrated"},{"id":"cat4-C-15","name":"Filling Color","stars":0,"low":"Pale / Undercooked / Slightly Pale","mid":"Target Color","high":"Slightly Dark / Very Dark / Overcooked"},{"id":"cat4-C-16","name":"Moisture (Filling)","stars":0,"low":"Very Dry / Crumbly / Slightly Dry","mid":"Target (Moist Filling)","high":"Slightly Wet / Watery / Soggy Filling"}],"notes":[]},{"letter":"D","name":"Aroma","attributes":[{"id":"cat4-D-17","name":"Fried / Baked Aroma","stars":0,"low":"Very Weak / None / Slight Fried Aroma","mid":"Target (Fresh Fried)","high":"Strong Fried Aroma / Burnt / Acrid Aroma"},{"id":"cat4-D-18","name":"Oily / Fat Aroma","stars":0,"low":"No Oily Aroma / Slight Oily Aroma","mid":"Target","high":"Strong Oily Aroma / Rancid / Oxidized"},{"id":"cat4-D-19","name":"Spice Aroma","stars":0,"low":"No Spice Aroma / Weak Spice Aroma","mid":"Target (Pleasant)","high":"Strong Spice Aroma / Overpowering / Pungent"},{"id":"cat4-D-20","name":"Filling Aroma","stars":0,"low":"No Filling Aroma / Weak Filling Aroma","mid":"Target","high":"Strong Filling Aroma / Off / Sour Aroma"},{"id":"cat4-D-21","name":"Herbal / Coriander Aroma","stars":0,"low":"None / Faint","mid":"Target","high":"Strong / Overpowering"}],"notes":[]},{"letter":"E","name":"Mouthfeel / Texture","attributes":[{"id":"cat4-E-22","name":"Shell Crunch (Initial Bite)","stars":0,"low":"No Crunch / Soggy / Low Crunch","mid":"Target (Clear Crunch)","high":"Very Crunchy / Excessively Hard"},{"id":"cat4-E-23","name":"Shell Chewiness","stars":0,"low":"Too Tough / Leathery / Slightly Chewy","mid":"Target","high":"Slightly Easy / Falls Apart"},{"id":"cat4-E-24","name":"Filling Moistness","stars":0,"low":"Very Dry Filling / Slightly Dry","mid":"Target (Moist)","high":"Slightly Wet / Watery / Wet"},{"id":"cat4-E-25","name":"Filling Softness","stars":0,"low":"Very Hard / Chunky / Slightly Hard","mid":"Target (Soft & Cohesive)","high":"Slightly Mushy / Mushy / Paste-Like"},{"id":"cat4-E-26","name":"Oiliness (Mouthfeel)","stars":0,"low":"No Fat Coating / Slight Coating","mid":"Target","high":"Heavy Coating / Excessively Greasy"},{"id":"cat4-E-27","name":"Spice Heat / Burn","stars":0,"low":"No Heat / Faint Heat","mid":"Target (Mild Spice)","high":"Moderate Heat / Intense Heat / Burning"}],"notes":[]},{"letter":"F","name":"Taste","attributes":[{"id":"cat4-F-28","name":"Saltiness","stars":0,"low":"No Salt / Low Salt","mid":"Target Salt Level","high":"Slightly Salty / Too Salty"},{"id":"cat4-F-29","name":"Spiciness","stars":0,"low":"No Spice / Low Spice","mid":"Target Spice Level","high":"Slightly High / Very High / Burning"},{"id":"cat4-F-30","name":"Savory / Umami","stars":0,"low":"No Savory Taste / Low Savory","mid":"Target","high":"Strong Savory / Overpowering"},{"id":"cat4-F-31","name":"Filling Taste","stars":0,"low":"No Filling Flavor / Weak Filling Flavor","mid":"Target (Well-Seasoned)","high":"Strong Filling Flavor / Off / Sour Taste"},{"id":"cat4-F-32","name":"Fat / Oily Taste","stars":0,"low":"No Fat Taste / Slight Fat Taste","mid":"Clean Fat Taste","high":"Strong Fat Taste / Rancid / Oxidized"},{"id":"cat4-F-33","name":"Herbal / Coriander Taste","stars":0,"low":"None / Faint","mid":"Target","high":"Strong / Overpowering"},{"id":"cat4-F-34","name":"Chicken Taste","stars":1,"low":"No Chicken Flavor / Weak Chicken Flavor","mid":"Target (Clear Chicken)","high":"Strong Chicken Flavor / Artificial / Off"},{"id":"cat4-F-35","name":"Attribute","stars":0,"low":"1–2  (Below Target)","mid":"3  (Target / Ideal)","high":"4–5  (Above Target)"},{"id":"cat4-F-36","name":"Spice Lingering","stars":0,"low":"None / Faint","mid":"Pleasant Lingering","high":"Strong Lingering / Burning / Painful"},{"id":"cat4-F-37","name":"Oily Aftertaste","stars":0,"low":"None / Slight","mid":"Clean (Target)","high":"Strong Oily Coating / Rancid / Unpleasant"},{"id":"cat4-F-38","name":"Residue","stars":0,"low":"Heavy Residue / Noticeable Residue","mid":"Clean","high":"Slightly Stripping / Highly Stripping"}],"notes":[{"stars":1,"text":"Chicken Taste: Chicken Samosa only; skip for Aloo Samosa."}]},{"letter":"G","name":"Overall","attributes":[{"id":"cat4-G-1","name":"Overall Liking","stars":0,"low":"Unacceptable / Just OK","mid":"Target (Ideal)","high":"Just OK / Unacceptable"}],"notes":[]}]},{"key":"cat5","title":"Rusks","products":["Round Rusk","Crispy Rusk","BaqarKhani Plain","BaqarKhani Sugar Coated","Cake Rusk Plain","Bran Cake Rusk"],"sections":[{"letter":"A","name":"Surface Appearance","attributes":[{"id":"cat5-A-1","name":"Surface Color","stars":0,"low":"Very Pale / Untoasted / Slightly Pale","mid":"Target (Golden Brown)","high":"Slightly Dark / Burnt"},{"id":"cat5-A-2","name":"Toast Uniformity","stars":0,"low":"Highly Uneven (Pale) / Slightly Uneven","mid":"Uniform","high":"Slightly Over-Toasted / Highly Uneven / Burnt"},{"id":"cat5-A-3","name":"Sugar Coating","stars":1,"low":"No Sugar Coating / Sparse / Thin","mid":"Uniform Even Coating","high":"Slightly Thick / Clumped / Heavy / Crystallized"},{"id":"cat5-A-4","name":"Shape Uniformity","stars":0,"low":"Highly Irregular / Slightly Irregular","mid":"Target","high":"Slightly Distorted / Highly Distorted"},{"id":"cat5-A-5","name":"Surface Smoothness","stars":0,"low":"Very Rough / Slightly Rough","mid":"Target (Smooth)","high":"Slightly Smooth / Very Smooth / Glazed"},{"id":"cat5-A-6","name":"Edge Condition","stars":0,"low":"Broken / Chipped / Slightly Chipped","mid":"Intact","high":"Slightly Sharp / Excessively Sharp"},{"id":"cat5-A-7","name":"Surface Integrity","stars":0,"low":"Cracked / Split / Slightly Cracked","mid":"Target (Intact)","high":"Firm / Excessively Hard"}],"notes":[{"stars":1,"text":"Sugar Coating: BaqarKhani Sugar Coated only; skip for all other products."}]},{"letter":"B","name":"Internal Structure","attributes":[{"id":"cat5-B-8","name":"Cell Structure","stars":0,"low":"Very Dense / Compact / Slightly Dense","mid":"Target (Even Cells)","high":"Slightly Open / Very Open / Hollow"},{"id":"cat5-B-9","name":"Cell Uniformity","stars":0,"low":"Highly Uneven / Slightly Uneven","mid":"Uniform","high":"Slightly Open Pockets / Large Voids"},{"id":"cat5-B-10","name":"Internal Color","stars":0,"low":"Very Pale / Slightly Pale","mid":"Target","high":"Slightly Dark / Excessively Dark"},{"id":"cat5-B-11","name":"Toast Penetration","stars":0,"low":"Under-Toasted Core / Slightly Under-Toasted","mid":"Target (Even Toast)","high":"Slightly Over-Toasted / Burnt Core"},{"id":"cat5-B-12","name":"Layering (BaqarKhani)","stars":3,"low":"No Layering / Slight Layering","mid":"Target (Distinct Layers)","high":"Slightly Uneven / Very Uneven Layers"}],"notes":[{"stars":3,"text":"Layering: BaqarKhani Plain & BaqarKhani Sugar Coated only."}]},{"letter":"C","name":"Aroma","attributes":[{"id":"cat5-C-13","name":"Baked / Toasted Aroma","stars":0,"low":"No / Weak Aroma / Slightly Weak","mid":"Target (Pleasant Toast)","high":"Strong / Burnt"},{"id":"cat5-C-14","name":"Sweet Aroma","stars":0,"low":"None / Low","mid":"Target","high":"Strong / Artificial / Sickly"},{"id":"cat5-C-15","name":"Milky Aroma","stars":0,"low":"None / Low","mid":"Target","high":"Strong / Artificial"},{"id":"cat5-C-16","name":"Grainy / Bran Aroma","stars":2,"low":"None / Low","mid":"Target","high":"Strong / Raw Bran / Harsh"},{"id":"cat5-C-17","name":"Butter / Fat Aroma","stars":3,"low":"None / Low","mid":"Target (Mild Butter)","high":"Strong / Rancid Fat Aroma"},{"id":"cat5-C-18","name":"Sugar / Caramel Aroma","stars":1,"low":"None / Faint","mid":"Target","high":"Strong / Artificial / Burnt Sugar"}],"notes":[{"stars":1,"text":"Sugar / Caramel Aroma: BaqarKhani Sugar Coated only."},{"stars":2,"text":"Grainy / Bran Aroma: Bran Cake Rusk only."},{"stars":3,"text":"Butter / Fat Aroma: BaqarKhani variants only."}]},{"letter":"D","name":"Texture / Mouthfeel","attributes":[{"id":"cat5-D-19","name":"Crunchiness","stars":0,"low":"No Crunch / Soft / Low Crunch","mid":"Target (Clean Crunch)","high":"Strong Crunch / Excessively Hard"},{"id":"cat5-D-20","name":"Bite Hardness","stars":0,"low":"Very Soft / Crumbles / Soft","mid":"Target","high":"Hard / Extremely Hard"},{"id":"cat5-D-21","name":"Fracturability","stars":0,"low":"Difficult to Break / Slightly Difficult","mid":"Target (Clean Break)","high":"Easy Break / Crumbles Excessively"},{"id":"cat5-D-22","name":"Crispness","stars":0,"low":"Not Crisp / Slightly Crisp","mid":"Target","high":"Very Crisp / Harsh / Cuts Mouth"},{"id":"cat5-D-23","name":"Dryness","stars":0,"low":"Very Moist / Soft / Slightly Moist","mid":"Target","high":"Slightly Dry / Extremely Dry"},{"id":"cat5-D-24","name":"Mouth Breakdown","stars":0,"low":"Very Slow / Slow","mid":"Target (Moderate)","high":"Quick / Instant Crumbling"},{"id":"cat5-D-25","name":"Particle Size (Chewing)","stars":0,"low":"Very Large Pieces / Large Pieces","mid":"Target (Fine & Even)","high":"Fine Particles / Powdery"},{"id":"cat5-D-26","name":"Mouth Coating","stars":0,"low":"No Coating / Slight Coating","mid":"Target","high":"High Coating / Excessively Oily"},{"id":"cat5-D-27","name":"Sugar Coating Feel","stars":1,"low":"No Sweetness on Touch / Slight Sweetness","mid":"Target (Even Sweet Crunch)","high":"Heavy Crystals / Sticky / Dissolves Poorly"}],"notes":[{"stars":1,"text":"Sugar Coating Feel: BaqarKhani Sugar Coated only."}]},{"letter":"E","name":"Taste","attributes":[{"id":"cat5-E-28","name":"Sweetness","stars":0,"low":"Very Low / None / Low","mid":"Target","high":"High / Excessively Sweet"},{"id":"cat5-E-29","name":"Salt Balance","stars":0,"low":"No Salt / Low Salt","mid":"Target","high":"Slightly Salty / Very Salty"},{"id":"cat5-E-30","name":"Toasted / Baked Flavor","stars":0,"low":"None / Low","mid":"Target","high":"Strong / Burnt"},{"id":"cat5-E-31","name":"Milky Flavor","stars":0,"low":"None / Low","mid":"Target","high":"Strong / Artificial"},{"id":"cat5-E-32","name":"Grain / Bran Flavor","stars":2,"low":"None / Low","mid":"Target","high":"Strong / Raw Grain / Harsh"},{"id":"cat5-E-33","name":"Butter Flavor","stars":3,"low":"None / Low","mid":"Target","high":"Strong / Rancid / Off"},{"id":"cat5-E-34","name":"Sugar / Caramel Flavor","stars":1,"low":"None / Faint","mid":"Target","high":"Strong / Artificial / Burnt Sugar"}],"notes":[{"stars":1,"text":"Sugar / Caramel Flavor: BaqarKhani Sugar Coated only."},{"stars":2,"text":"Grain / Bran Flavor: Bran Cake Rusk only."},{"stars":3,"text":"Butter Flavor: BaqarKhani variants only."}]},{"letter":"F","name":"Aftertaste","attributes":[{"id":"cat5-F-35","name":"Drying Intensity","stars":0,"low":"Not Drying / Slightly Drying","mid":"Target","high":"Drying / Extremely Drying"},{"id":"cat5-F-36","name":"Residue","stars":0,"low":"Heavy Residue / Noticeable Residue","mid":"Clean","high":"Slightly Stripping / Highly Stripping"},{"id":"cat5-F-37","name":"Toasted Aftertaste","stars":0,"low":"None / Low","mid":"Target","high":"Strong / Burnt"},{"id":"cat5-F-38","name":"Sweet Aftertaste","stars":0,"low":"None / Low","mid":"Target","high":"Strong / Overly Lingering"},{"id":"cat5-F-39","name":"Bitter Aftertaste","stars":0,"low":"None / Slight","mid":"Target (None)","high":"Noticeable / Strong Bitter"}],"notes":[]},{"letter":"G","name":"Overall","attributes":[{"id":"cat5-G-1","name":"Overall Liking","stars":0,"low":"Unacceptable / Just OK","mid":"Target (Ideal)","high":"Just OK / Unacceptable"}],"notes":[]}]},{"key":"cat6","title":"Cakes, Muffins & Cupcakes","products":["Lemon Cake","Fruit Cake","Plain Cake","Marble Cake","Pound Cake","Boat Cake Plain","Mango Boat Cake","Chocolate Bar Cake","Plain Bar Cake","Fruit Bun","Muffins (Vanilla, Pineapple, Chocolate, Strawberry)","Cupcakes (Vanilla, Pineapple, Chocolate, Strawberry)"],"sections":[{"letter":"A","name":"Surface / External Appearance","attributes":[{"id":"cat6-A-1","name":"Crust / Top Color","stars":0,"low":"Too Light / Pale / Slightly Light","mid":"Target (Golden / Brown)","high":"Slightly Dark / Very Dark / Burnt"},{"id":"cat6-A-2","name":"Surface Smoothness","stars":0,"low":"Highly Cracked / Split / Slightly Cracked","mid":"Smooth","high":"Slightly Domed / Highly Domed / Peaked"},{"id":"cat6-A-3","name":"Top Shape / Rise","stars":0,"low":"Very Flat / Slightly Flat","mid":"Target","high":"Slightly Raised / Highly Raised / Peaked"},{"id":"cat6-A-4","name":"Fruit Visibility","stars":3,"low":"No Fruit Visible / Sparse Fruit","mid":"Uniform Distribution","high":"Slightly Concentrated / Heavily Clumped"},{"id":"cat6-A-5","name":"Marble Pattern","stars":4,"low":"No Marble / Solid / Faint Marble","mid":"Target (Clear Marble)","high":"Heavy / Blotchy Marble / Marbling Absent"},{"id":"cat6-A-6","name":"Color Uniformity","stars":0,"low":"Highly Uneven (Light) / Slightly Uneven","mid":"Uniform","high":"Slightly Uneven (Dark) / Highly Uneven (Dark)"},{"id":"cat6-A-7","name":"Shape Uniformity","stars":0,"low":"Very Irregular / Slightly Irregular","mid":"Target","high":"Slightly Distorted / Highly Distorted"}],"notes":[{"stars":3,"text":"Fruit Visibility: Fruit Cake & Fruit Bun only."},{"stars":4,"text":"Marble Pattern: Marble Cake & Chocolate Bar Cake only."}]},{"letter":"B","name":"Crumb / Internal Structure","attributes":[{"id":"cat6-B-8","name":"Crumb Color","stars":0,"low":"Too Pale / White / Slightly Pale","mid":"Target","high":"Slightly Dark / Too Dark"},{"id":"cat6-B-9","name":"Cell Structure","stars":0,"low":"Very Open / Tunneling / Slightly Open","mid":"Target (Fine Even Cells)","high":"Slightly Dense / Very Dense / Compact"},{"id":"cat6-B-10","name":"Cell Uniformity","stars":0,"low":"Highly Uneven / Slightly Uneven","mid":"Uniform","high":"Slightly Dense Patches / Highly Dense Patches"},{"id":"cat6-B-11","name":"Moist Appearance","stars":0,"low":"Very Dry / Crumbly / Slightly Dry","mid":"Target (Moist Look)","high":"Slightly Moist / Wet / Gummy"},{"id":"cat6-B-12","name":"Chocolate Swirl","stars":4,"low":"No Swirl / Faint Swirl","mid":"Target (Clear Swirl)","high":"Heavy Swirl / Swirl Absent"},{"id":"cat6-B-13","name":"Fruit Distribution","stars":3,"low":"Fruit Settled at Bottom / Slightly Uneven","mid":"Uniform","high":"Slightly Concentrated / Heavily Concentrated"}],"notes":[{"stars":3,"text":"Fruit Distribution: Fruit Cake & Fruit Bun only."},{"stars":4,"text":"Chocolate Swirl: Marble Cake & Chocolate Bar Cake only."}]},{"letter":"C","name":"Aroma","attributes":[{"id":"cat6-C-14","name":"Milky / Dairy Aroma","stars":0,"low":"No Dairy Aroma / Low Dairy Aroma","mid":"Target","high":"Slightly Strong / Very Strong"},{"id":"cat6-C-15","name":"Vanilla Aroma","stars":0,"low":"No Vanilla Aroma / Low Vanilla Aroma","mid":"Target","high":"Strong Vanilla Aroma / Artificial / Overpowering"},{"id":"cat6-C-16","name":"Baked Aroma","stars":0,"low":"Underbaked Aroma / Slightly Underbaked","mid":"Fresh Baked (Ideal)","high":"Toasted Aroma / Burnt Aroma"},{"id":"cat6-C-17","name":"Buttery Aroma","stars":0,"low":"No Buttery Aroma / Low Buttery Aroma","mid":"Target","high":"Strong Buttery Aroma / Rancid Fat Aroma"},{"id":"cat6-C-18","name":"Fruity Aroma","stars":3,"low":"No Fruity Aroma / Weak Fruity Aroma","mid":"Target","high":"Strong Fruity Aroma / Artificial Fruity Aroma"},{"id":"cat6-C-19","name":"Lemon / Citrus Aroma","stars":1,"low":"None / Faint","mid":"Target (Fresh Citrus)","high":"Strong / Artificial / Chemical"},{"id":"cat6-C-20","name":"Chocolate Aroma","stars":4,"low":"None / Faint","mid":"Target (Rich Cocoa)","high":"Strong / Artificial / Bitter"},{"id":"cat6-C-21","name":"Mango Aroma","stars":2,"low":"None / Faint","mid":"Target (Fresh Mango)","high":"Strong / Artificial / Over-Ripe"},{"id":"cat6-C-22","name":"Strawberry / Pineapple Aroma","stars":5,"low":"None / Faint","mid":"Target","high":"Strong / Artificial / Overpowering"}],"notes":[{"stars":1,"text":"Lemon / Citrus Aroma: Lemon Cake only."},{"stars":2,"text":"Mango Aroma: Mango Boat Cake only."},{"stars":3,"text":"Fruity Aroma: Fruit Cake, Fruit Bun only."},{"stars":4,"text":"Chocolate Aroma: Chocolate Bar Cake, Marble Cake, Chocolate Muffin / Cupcake."},{"stars":5,"text":"Strawberry / Pineapple Aroma: flavoured Muffins & Cupcakes only."}]},{"letter":"D","name":"Mouthfeel / Texture","attributes":[{"id":"cat6-D-23","name":"Moistness","stars":0,"low":"Very Dry / Dry","mid":"Target (Moist)","high":"Moist / Very Moist / Gummy"},{"id":"cat6-D-24","name":"Crumbliness","stars":0,"low":"Highly Crumbly / Slightly Crumbly","mid":"Target (Slightly Tender)","high":"Slightly Cohesive / Very Cohesive / Gummy"},{"id":"cat6-D-25","name":"Softness (Initial Bite)","stars":0,"low":"Very Hard / Dense / Slightly Hard","mid":"Target (Soft)","high":"Slightly Soft / Mushy"},{"id":"cat6-D-26","name":"Mouth Coating","stars":0,"low":"No Coating / Slight Coating","mid":"Target","high":"High Coating / Excessively Greasy"},{"id":"cat6-D-27","name":"Effort to Swallow","stars":0,"low":"Very Easy (Too Soft) / Easy","mid":"Target","high":"Slightly Difficult / Very Difficult"}],"notes":[{"stars":1,"text":"Glaze / Icing Texture: Lemon Cake & Mango Boat Cake."},{"stars":2,"text":"Icing Melt / Creaminess: Muffins & Cupcakes only."}]},{"letter":"E","name":"Taste","attributes":[{"id":"cat6-E-28","name":"Sweetness","stars":0,"low":"Very Low / Low","mid":"Target","high":"Slightly High / Overly Sweet"},{"id":"cat6-E-29","name":"Milky Taste","stars":0,"low":"No Milk Taste / Low Milk Taste","mid":"Target","high":"Strong Milk Taste / Artificial Milk Taste"},{"id":"cat6-E-30","name":"Vanilla Taste","stars":0,"low":"No Vanilla Taste / Low Vanilla Taste","mid":"Target","high":"Strong Vanilla Taste / Artificial Vanilla Taste"},{"id":"cat6-E-31","name":"Baked / Buttery Taste","stars":0,"low":"No Buttery Flavor / Slight Buttery Flavor","mid":"Target","high":"Strong Buttery Flavor / Rancid Fat Taste"},{"id":"cat6-E-32","name":"Fruity Taste","stars":3,"low":"No Fruit Taste / Low Fruit Taste","mid":"Target","high":"Strong Fruit Taste / Artificial Fruit Taste"},{"id":"cat6-E-33","name":"Lemon / Citrus Taste","stars":1,"low":"None / Faint","mid":"Target (Bright & Tangy)","high":"Strong / Sour / Artificial / Bitter"},{"id":"cat6-E-34","name":"Chocolate Taste","stars":4,"low":"None / Low","mid":"Target (Rich Cocoa)","high":"Strong / Artificial / Very Bitter"},{"id":"cat6-E-35","name":"Mango Taste","stars":2,"low":"None / Faint","mid":"Target (Fresh Mango)","high":"Strong / Artificial / Over-Ripe"},{"id":"cat6-E-36","name":"Strawberry / Pineapple Taste","stars":5,"low":"None / Faint","mid":"Target","high":"Strong / Artificial / Cloying"}],"notes":[{"stars":1,"text":"Lemon / Citrus Taste: Lemon Cake only."},{"stars":2,"text":"Mango Taste: Mango Boat Cake only."},{"stars":3,"text":"Fruity Taste: Fruit Cake & Fruit Bun only."},{"stars":4,"text":"Chocolate Taste: Chocolate Bar Cake, Marble Cake, Chocolate Muffin / Cupcake."},{"stars":5,"text":"Strawberry / Pineapple Taste: flavoured Muffins & Cupcakes only."}]},{"letter":"F","name":"Aftertaste","attributes":[{"id":"cat6-F-37","name":"Drying Intensity","stars":0,"low":"Very Drying / Slightly Drying","mid":"Neutral","high":"Slight Moist Coating / Heavy Coating"},{"id":"cat6-F-38","name":"Sweet–Bitter Balance","stars":0,"low":"Very Sweet / Slightly Sweet","mid":"Balanced","high":"Slightly Bitter / Strong Bitter"},{"id":"cat6-F-39","name":"Residue","stars":0,"low":"Heavy Residue / Noticeable Residue","mid":"Clean","high":"Slightly Stripping / Highly Stripping"},{"id":"cat6-F-40","name":"Fruit / Flavour Aftertaste","stars":1,"low":"None / Faint","mid":"Pleasant Lingering","high":"Strong / Artificial / Bitter"}],"notes":[{"stars":1,"text":"Fruit / Flavour Aftertaste: Lemon Cake, Fruit Cake, Mango Boat Cake, Fruit Bun, flavoured Muffins/Cupcakes."},{"stars":2,"text":"Icing Sweetness Lingering: Muffins & Cupcakes only."}]},{"letter":"G","name":"Overall","attributes":[{"id":"cat6-G-1","name":"Overall Liking","stars":0,"low":"Unacceptable / Just OK","mid":"Target (Ideal)","high":"Just OK / Unacceptable"}],"notes":[]}]},{"key":"cat7","title":"Chicken Products","products":["Chicken Shots","Hotshots","Nuggets"],"sections":[{"letter":"A","name":"External Appearance / Coating","attributes":[{"id":"cat7-A-1","name":"Coating Color","stars":0,"low":"Very Pale / Unfried / Slightly Pale","mid":"Target (Golden Brown)","high":"Slightly Dark / Very Dark / Burnt"},{"id":"cat7-A-2","name":"Color Uniformity","stars":0,"low":"Highly Uneven (Pale) / Slightly Uneven","mid":"Uniform","high":"Slightly Uneven (Dark) / Highly Uneven (Burnt)"},{"id":"cat7-A-3","name":"Coating Texture","stars":0,"low":"Very Smooth / No Crumb / Slightly Smooth","mid":"Target (Light Crumb)","high":"Heavy Crumb / Rough / Excessively Rough / Clumped"},{"id":"cat7-A-4","name":"Oiliness (External)","stars":0,"low":"Very Dry / No Sheen / Slight Sheen","mid":"Target (Light Sheen)","high":"Oily / Wet Look / Excessively Oily"},{"id":"cat7-A-5","name":"Shape Uniformity","stars":0,"low":"Very Irregular / Slightly Irregular","mid":"Target (Uniform Shape)","high":"Slightly Distorted / Highly Distorted"},{"id":"cat7-A-6","name":"Size Consistency","stars":0,"low":"Much Smaller / Slightly Small","mid":"Target Size","high":"Slightly Large / Much Larger"},{"id":"cat7-A-7","name":"Coating Adhesion","stars":0,"low":"Coating Falling Off / Slightly Loose","mid":"Target (Well Adhered)","high":"Slightly Thick Coating / Very Thick / Doughy"}],"notes":[]},{"letter":"B","name":"Internal / Filling Appearance","attributes":[{"id":"cat7-B-8","name":"Chicken Color (Internal)","stars":0,"low":"Grey / Undercooked / Slightly Pale","mid":"Target (Cooked White)","high":"Slightly Dark / Very Dark / Overcooked"},{"id":"cat7-B-9","name":"Filling Distribution","stars":0,"low":"No Chicken / Empty / Sparse Chicken","mid":"Target (Well-Filled)","high":"Slightly Over-Filled / Excessively Over-Filled"},{"id":"cat7-B-10","name":"Filling Moisture","stars":0,"low":"Very Dry / Stringy / Slightly Dry","mid":"Target (Moist & Tender)","high":"Slightly Wet / Very Wet / Watery"},{"id":"cat7-B-11","name":"Cheese Pull / Melt","stars":1,"low":"No Cheese Visible / Sparse Cheese","mid":"Target (Good Melt & Pull)","high":"Excess Cheese / Very Excess / Oily Cheese"}],"notes":[{"stars":1,"text":"Cheese Pull / Melt: Hotshots & cheese-filled variants only."}]},{"letter":"C","name":"Aroma","attributes":[{"id":"cat7-C-12","name":"Fried Aroma","stars":0,"low":"Very Weak / None / Slight Fried Aroma","mid":"Target (Fresh Fried)","high":"Strong Fried Aroma / Burnt / Acrid Aroma"},{"id":"cat7-C-13","name":"Chicken Aroma","stars":0,"low":"No Chicken Aroma / Weak Chicken Aroma","mid":"Target (Clear Chicken)","high":"Strong Chicken Aroma / Off / Sour Chicken"},{"id":"cat7-C-14","name":"Spice / Seasoning Aroma","stars":0,"low":"No Spice Aroma / Weak Spice Aroma","mid":"Target (Balanced)","high":"Strong Spice Aroma / Overpowering / Pungent"},{"id":"cat7-C-15","name":"Oily / Fat Aroma","stars":0,"low":"No Oily Aroma / Slight Oily Aroma","mid":"Target","high":"Strong Oily Aroma / Rancid / Oxidized"},{"id":"cat7-C-16","name":"Cheese Aroma","stars":1,"low":"None / Faint","mid":"Target (Mild Cheese)","high":"Strong Cheese Aroma / Sharp / Off Cheese"}],"notes":[{"stars":1,"text":"Cheese Aroma: Hotshots & cheese-filled variants only."}]},{"letter":"D","name":"Mouthfeel / Texture","attributes":[{"id":"cat7-D-17","name":"Coating Crunch","stars":0,"low":"No Crunch / Soggy / Low Crunch","mid":"Target (Clear Crunch)","high":"Very Crunchy / Excessively Hard"},{"id":"cat7-D-18","name":"Coating Chewiness","stars":0,"low":"Too Tough / Rubbery / Slightly Chewy","mid":"Target","high":"Slightly Easy / Falls Apart"},{"id":"cat7-D-19","name":"Chicken Tenderness","stars":0,"low":"Very Tough / Stringy / Slightly Tough","mid":"Target (Tender & Juicy)","high":"Slightly Mushy / Very Mushy / Paste"},{"id":"cat7-D-20","name":"Chicken Juiciness","stars":0,"low":"Very Dry / Slightly Dry","mid":"Target (Juicy)","high":"Slightly Wet / Very Wet / Watery"},{"id":"cat7-D-21","name":"Oiliness (Mouthfeel)","stars":0,"low":"No Fat Coating / Slight Coating","mid":"Target","high":"Heavy Coating / Excessively Greasy"},{"id":"cat7-D-22","name":"Spice Heat / Burn","stars":0,"low":"No Heat / Faint Heat","mid":"Target (Mild Spice)","high":"Moderate Heat / Intense Heat / Burning"},{"id":"cat7-D-23","name":"Cheese Melt (Feel)","stars":1,"low":"No Cheese Feel / Faint Cheese","mid":"Target (Creamy Melt)","high":"Heavy Cheese / Excessively Oily Cheese"}],"notes":[{"stars":1,"text":"Cheese Melt: cheese-filled variants only."}]},{"letter":"E","name":"Taste","attributes":[{"id":"cat7-E-24","name":"Saltiness","stars":0,"low":"No Salt / Low Salt","mid":"Target Salt Level","high":"Slightly Salty / Too Salty"},{"id":"cat7-E-25","name":"Spiciness","stars":0,"low":"No Spice / Low Spice","mid":"Target Spice Level","high":"Slightly High / Very High / Burning"},{"id":"cat7-E-26","name":"Chicken Flavor","stars":0,"low":"No Chicken Taste / Weak Chicken Taste","mid":"Target (Clear Chicken)","high":"Strong Chicken Taste / Artificial / Off"},{"id":"cat7-E-27","name":"Savory / Umami","stars":0,"low":"No Savory Taste / Low Savory","mid":"Target","high":"Strong Savory / Overpowering"},{"id":"cat7-E-28","name":"Oily / Fat Taste","stars":0,"low":"No Fat Taste / Slight Fat Taste","mid":"Clean Fat Taste","high":"Strong Fat Taste / Rancid / Oxidized"},{"id":"cat7-E-29","name":"Cheese Taste","stars":1,"low":"None / Faint","mid":"Target (Mild Creamy)","high":"Strong Cheese / Sharp / Off Cheese"},{"id":"cat7-E-30","name":"Sweetness","stars":0,"low":"None / Faint","mid":"Target (Balanced)","high":"Slightly Sweet / Overly Sweet"}],"notes":[{"stars":1,"text":"Cheese Taste: Hotshots & cheese-filled variants only."}]},{"letter":"F","name":"Aftertaste","attributes":[{"id":"cat7-F-31","name":"Spice Lingering","stars":0,"low":"None / Faint","mid":"Pleasant Lingering","high":"Strong Lingering / Burning / Painful"},{"id":"cat7-F-32","name":"Oily Aftertaste","stars":0,"low":"None / Slight","mid":"Clean (Target)","high":"Strong Oily Coating / Rancid / Unpleasant"},{"id":"cat7-F-33","name":"Residue","stars":0,"low":"Heavy Residue / Noticeable Residue","mid":"Clean","high":"Slightly Stripping / Highly Stripping"},{"id":"cat7-F-34","name":"Chicken Aftertaste","stars":0,"low":"None / Faint","mid":"Pleasant Lingering","high":"Strong / Off / Sour"}],"notes":[]},{"letter":"G","name":"Overall","attributes":[{"id":"cat7-G-1","name":"Overall Liking","stars":0,"low":"Unacceptable / Just OK","mid":"Target (Ideal)","high":"Just OK / Unacceptable"}],"notes":[]}]},{"key":"cat8","title":"Kebabs","products":["Seekh Kebab","Gola Kebab"],"sections":[{"letter":"A","name":"External Appearance","attributes":[{"id":"cat8-A-1","name":"Surface Color","stars":0,"low":"Very Pale / Uncooked / Slightly Pale","mid":"Target (Brown / Charred)","high":"Slightly Dark / Very Dark / Burnt"},{"id":"cat8-A-2","name":"Color Uniformity","stars":0,"low":"Highly Uneven (Pale) / Slightly Uneven","mid":"Uniform","high":"Slightly Uneven (Dark) / Highly Uneven (Burnt)"},{"id":"cat8-A-3","name":"Char / Grill Marks","stars":1,"low":"No Char Marks / Faint Marks","mid":"Target (Even Char Marks)","high":"Heavy Char Marks / Excessively Burnt"},{"id":"cat8-A-4","name":"Surface Texture","stars":0,"low":"Very Smooth (Underdone) / Slightly Smooth","mid":"Target (Light Crust)","high":"Slightly Rough / Very Rough / Cracked"},{"id":"cat8-A-5","name":"Shape Uniformity","stars":0,"low":"Very Irregular / Broken / Slightly Irregular","mid":"Target (Uniform Shape)","high":"Slightly Distorted / Highly Distorted"},{"id":"cat8-A-6","name":"Size Consistency","stars":0,"low":"Much Smaller / Slightly Small","mid":"Target Size","high":"Slightly Large / Much Larger"},{"id":"cat8-A-7","name":"Surface Oiliness","stars":0,"low":"No Oiliness / Very Dry / Slight Sheen","mid":"Target (Light Sheen)","high":"Oily / Excessively Oily / Wet"}],"notes":[{"stars":1,"text":"Char / Grill Marks: evaluate as a positive attribute for both Seekh and Gola Kebab."}]},{"letter":"B","name":"Internal Appearance / Structure","attributes":[{"id":"cat8-B-8","name":"Internal Color","stars":0,"low":"Very Pink / Raw Look / Slightly Pink","mid":"Target (Evenly Cooked)","high":"Slightly Grey / Overcooked / Very Grey"},{"id":"cat8-B-9","name":"Moisture (Internal)","stars":0,"low":"Very Dry / Crumbly / Slightly Dry","mid":"Target (Moist Look)","high":"Slightly Wet / Very Wet / Leaking Fat"},{"id":"cat8-B-10","name":"Minced Texture","stars":0,"low":"Very Coarse / Chunky / Slightly Coarse","mid":"Target (Fine & Even)","high":"Slightly Fine / Too Fine / Paste-Like"},{"id":"cat8-B-11","name":"Fat Pockets","stars":0,"low":"Excessive Fat Pockets / Several Fat Pockets","mid":"Target (Minimal Fat)","high":"Few Fat Pockets / No Fat (Very Lean / Dry)"},{"id":"cat8-B-12","name":"Structural Integrity","stars":0,"low":"Fell Apart / Broken / Slightly Loose","mid":"Target (Cohesive)","high":"Slightly Firm / Very Firm / Dense"},{"id":"cat8-B-13","name":"Shape Retention","stars":1,"low":"No Shape (Collapsed) / Poor Shape Retention","mid":"Target","high":"Good Shape / Overly Rigid / Hard"}],"notes":[{"stars":1,"text":"Shape Retention: critical for Seekh Kebab (cylindrical); Gola Kebab evaluated as round."}]},{"letter":"C","name":"Aroma","attributes":[{"id":"cat8-C-14","name":"Grilled / Char Aroma","stars":0,"low":"No Grilled Aroma / Slight Grilled Aroma","mid":"Target (Pleasant Char)","high":"Strong Grilled Aroma / Burnt / Acrid Aroma"},{"id":"cat8-C-15","name":"Meat / Chicken Aroma","stars":0,"low":"No Meat Aroma / Weak Meat Aroma","mid":"Target (Clear Meat)","high":"Strong Meat Aroma / Off / Sour Meat"},{"id":"cat8-C-16","name":"Spice Aroma","stars":0,"low":"No Spice Aroma / Weak Spice Aroma","mid":"Target (Balanced)","high":"Strong Spice Aroma / Overpowering / Pungent"},{"id":"cat8-C-17","name":"Fat / Oily Aroma","stars":0,"low":"No Fat Aroma / Slight Fat Aroma","mid":"Target","high":"Strong Fat Aroma / Rancid / Oxidized"},{"id":"cat8-C-18","name":"Herbal Aroma","stars":0,"low":"None / Faint","mid":"Target (Coriander / Herb)","high":"Strong / Overpowering"},{"id":"cat8-C-19","name":"Onion / Garlic Aroma","stars":0,"low":"None / Faint","mid":"Target","high":"Strong / Overpowering / Pungent"},{"id":"cat8-C-20","name":"Smoky Aroma","stars":0,"low":"No Smoky Aroma / Faint Smoky Aroma","mid":"Target (Mild Smoky)","high":"Strong Smoky Aroma / Acrid / Overpowering"}],"notes":[]},{"letter":"D","name":"Mouthfeel / Texture","attributes":[{"id":"cat8-D-21","name":"Softness / Tenderness","stars":0,"low":"Very Tough / Rubbery / Slightly Tough","mid":"Target (Tender)","high":"Slightly Soft / Very Soft / Mushy"},{"id":"cat8-D-22","name":"Juiciness","stars":0,"low":"Very Dry / Slightly Dry","mid":"Target (Juicy)","high":"Slightly Wet / Very Wet / Falling Apart"},{"id":"cat8-D-23","name":"Chewiness","stars":0,"low":"Too Tough (Rubbery) / Slightly Chewy","mid":"Target","high":"Slightly Easy / Falls Apart / Crumbles"},{"id":"cat8-D-24","name":"Cohesiveness","stars":1,"low":"Crumbles Completely / Slightly Falls Apart","mid":"Target (Holds Shape)","high":"Slightly Too Firm / Very Firm / Dense"},{"id":"cat8-D-25","name":"Fat Mouthfeel","stars":0,"low":"No Fat (Very Lean / Dry) / Slight Fat Coating","mid":"Target (Mild Fat)","high":"Heavy Fat Coating / Excessively Greasy"},{"id":"cat8-D-26","name":"Spice Heat / Burn","stars":0,"low":"No Heat / Faint Heat","mid":"Target (Mild Spice)","high":"Moderate Heat / Intense Heat / Burning"},{"id":"cat8-D-27","name":"Grain / Minced Texture","stars":0,"low":"Too Coarse / Gritty / Slightly Coarse","mid":"Target (Fine & Smooth)","high":"Slightly Pasty / Very Pasty"}],"notes":[{"stars":1,"text":"Cohesiveness: critical for Seekh Kebab; Gola Kebab may be slightly more crumbly."}]},{"letter":"E","name":"Taste","attributes":[{"id":"cat8-E-28","name":"Saltiness","stars":0,"low":"No Salt / Low Salt","mid":"Target Salt Level","high":"Slightly Salty / Too Salty"},{"id":"cat8-E-29","name":"Spiciness","stars":0,"low":"No Spice / Low Spice","mid":"Target Spice Level","high":"Slightly High / Very High / Burning"},{"id":"cat8-E-30","name":"Meat / Chicken Flavor","stars":0,"low":"No Meat Flavor / Weak Meat Flavor","mid":"Target (Clear Meat)","high":"Strong Meat Flavor / Artificial / Off"},{"id":"cat8-E-31","name":"Savory / Umami","stars":0,"low":"No Savory / Low Savory","mid":"Target","high":"Strong Savory / Overpowering"},{"id":"cat8-E-32","name":"Fat / Oily Taste","stars":0,"low":"No Fat Taste / Slight Fat Taste","mid":"Clean Fat Taste","high":"Strong Fat Taste / Rancid / Oxidized"},{"id":"cat8-E-33","name":"Herbal / Coriander Taste","stars":0,"low":"None / Faint","mid":"Target","high":"Strong / Overpowering"},{"id":"cat8-E-34","name":"Onion / Garlic Taste","stars":0,"low":"None / Faint","mid":"Target","high":"Strong / Overpowering / Pungent"},{"id":"cat8-E-35","name":"Smoky / Char Taste","stars":0,"low":"None / Faint","mid":"Target (Mild Smoky)","high":"Strong / Acrid / Bitter"},{"id":"cat8-E-36","name":"Sweetness","stars":0,"low":"None / Faint (Target)","mid":"Slight","high":"Noticeable / Overly Sweet"}],"notes":[]},{"letter":"F","name":"Aftertaste","attributes":[{"id":"cat8-F-37","name":"Spice Lingering","stars":0,"low":"None / Faint","mid":"Pleasant Lingering","high":"Strong Lingering / Burning / Painful"},{"id":"cat8-F-38","name":"Smoky / Char Aftertaste","stars":0,"low":"None / Faint","mid":"Mild (Target)","high":"Strong / Acrid / Unpleasant"},{"id":"cat8-F-39","name":"Meat Aftertaste","stars":0,"low":"None / Faint","mid":"Pleasant Lingering","high":"Strong / Off / Sour"},{"id":"cat8-F-40","name":"Oily Aftertaste","stars":0,"low":"None / Slight","mid":"Clean (Target)","high":"Strong Oily Coating / Rancid / Unpleasant"},{"id":"cat8-F-41","name":"Residue","stars":0,"low":"Heavy Residue / Noticeable Residue","mid":"Clean","high":"Slightly Stripping / Highly Stripping"}],"notes":[]},{"letter":"G","name":"Overall","attributes":[{"id":"cat8-G-1","name":"Overall Liking","stars":0,"low":"Unacceptable / Just OK","mid":"Target (Ideal)","high":"Just OK / Unacceptable"}],"notes":[]}]},{"key":"cat9","title":"Pizza Toppings (As Supplied, Standalone)","products":["Chicken Tikka Topping","Beef Topping","Vegetable Mix Topping","Cheese Blend Topping"],"sections":[{"letter":"A","name":"Topping Appearance","attributes":[{"id":"cat9-A-1","name":"Color","stars":0,"low":"Too Pale / Faded / Discolored","mid":"Target (Bright, Natural / Characteristic Color)","high":"Slightly Dark / Very Dark / Off-Color"},{"id":"cat9-A-2","name":"Color Uniformity","stars":0,"low":"Highly Uneven (Pale/Patchy) / Slightly Uneven","mid":"Uniform Across Pieces","high":"Slightly Uneven (Dark) / Highly Uneven (Dark)"},{"id":"cat9-A-3","name":"Surface Moisture / Oiliness","stars":0,"low":"Dry / Dull / Slight Sheen","mid":"Target (Light, Natural Sheen)","high":"Wet / Oily / Excessively Greasy / Weeping"},{"id":"cat9-A-4","name":"Visual Freshness","stars":0,"low":"Freezer Burn / Discoloration / Slightly Dry Edges","mid":"Target (Fresh, No Defects)","high":"Excess Surface Moisture / Slimy / Deteriorated"}],"notes":[]},{"letter":"B","name":"Topping Size & Cut","attributes":[{"id":"cat9-B-5","name":"Piece Size","stars":0,"low":"Crushed / Finely Crushed / Slightly Small","mid":"Target Size","high":"Slightly Large / Too Large / Oversized"},{"id":"cat9-B-6","name":"Size Uniformity","stars":0,"low":"Highly Uneven (Fine) / Slightly Uneven","mid":"Uniform","high":"Slightly Uneven (Coarse) / Highly Uneven (Coarse)"}],"notes":[]},{"letter":"C","name":"Aroma","attributes":[{"id":"cat9-C-7","name":"Characteristic Umami Aroma","stars":0,"low":"Very Weak / None / Faint","mid":"Target (Clear, Characteristic)","high":"Strong / Overpowering / Off-Character"},{"id":"cat9-C-8","name":"Spice / Seasoning Aroma","stars":0,"low":"No Spice Aroma / Weak Spice Aroma","mid":"Target (Pleasant)","high":"Strong Spice Aroma / Overpowering / Pungent"},{"id":"cat9-C-9","name":"Raw / Uncooked Aroma","stars":1,"low":"Strong Raw / Metallic Aroma / Slightly Raw","mid":"Target (Clean, Appropriate to Product State)","high":"Slightly Strong Cooked / Overcooked / Burnt Aroma"}],"notes":[]},{"letter":"D","name":"Mouthfeel / Texture","attributes":[{"id":"cat9-D-10","name":"Firmness / Bite","stars":0,"low":"Very Soft / Mushy / Slightly Soft","mid":"Target (Firm, Characteristic Bite)","high":"Slightly Tough / Very Tough / Rubbery"},{"id":"cat9-D-11","name":"Juiciness / Moistness","stars":0,"low":"Very Dry / Slightly Dry","mid":"Target (Moist)","high":"Slightly Wet / Watery / Soggy"},{"id":"cat9-D-12","name":"Chewiness","stars":0,"low":"No Chew / Falls Apart / Slightly Easy","mid":"Target","high":"Slightly Chewy / Very Tough / Rubbery"},{"id":"cat9-D-13","name":"Oiliness (Mouthfeel)","stars":0,"low":"No Fat Coating / Slight Coating","mid":"Target","high":"Heavy Coating / Excessively Greasy"}],"notes":[]},{"letter":"E","name":"Taste","attributes":[{"id":"cat9-E-14","name":"Saltiness","stars":0,"low":"No Salt / Low Salt","mid":"Target Salt Level","high":"Slightly Salty / Too Salty"},{"id":"cat9-E-15","name":"Spiciness","stars":0,"low":"No Spice / Low Spice","mid":"Target Spice Level","high":"Slightly High / Very High / Burning"},{"id":"cat9-E-16","name":"Savory / Umami","stars":0,"low":"No Savory Taste / Low Savory","mid":"Target","high":"Strong Savory / Overpowering"},{"id":"cat9-E-17","name":"Off Taste","stars":0,"low":"None / Faint","mid":"Clean (Target)","high":"Noticeable Rancid / Sour / Off Taste"}],"notes":[]},{"letter":"F","name":"Aftertaste","attributes":[{"id":"cat9-F-18","name":"Flavor Lingering","stars":0,"low":"None / Faint","mid":"Pleasant Lingering","high":"Strong Lingering / Overpowering / Unpleasant"},{"id":"cat9-F-19","name":"Oily Aftertaste","stars":0,"low":"None / Slight","mid":"Clean (Target)","high":"Strong Oily Coating / Rancid / Unpleasant"},{"id":"cat9-F-20","name":"Residue","stars":0,"low":"Heavy Residue / Noticeable Residue","mid":"Clean","high":"Slightly Stripping / Highly Stripping"},{"id":"cat9-F-21","name":"Panelist Signature:","stars":0,"low":null,"mid":null,"high":"Evaluated By:"}],"notes":[]},{"letter":"G","name":"Overall","attributes":[{"id":"cat9-G-1","name":"Overall Liking","stars":0,"low":"Unacceptable / Just OK","mid":"Target (Ideal)","high":"Just OK / Unacceptable"}],"notes":[]}]}];
+
+</script>
+<script>
+/* ============ STORAGE HELPERS ============ */
+let STORAGE_OK = true;
+async function storeGet(key, shared){
+  try{ const r = await window.storage.get(key, !!shared); return r ? JSON.parse(r.value) : null; }
+  catch(e){ return null; }
+}
+async function storeSet(key, value, shared){
+  try{
+    const r = await window.storage.set(key, JSON.stringify(value), !!shared);
+    if(!r) STORAGE_OK = false;
+    return !!r;
+  }
+  catch(e){ STORAGE_OK = false; return false; }
+}
+async function storeList(prefix, shared){
+  try{ const r = await window.storage.list(prefix, !!shared); return r ? r.keys : []; }
+  catch(e){ return []; }
+}
+async function checkStorageAvailable(){
+  if(typeof window.storage === 'undefined' || !window.storage){ STORAGE_OK = false; return false; }
+  try{
+    const testKey = '__storage_check__';
+    const ok = await window.storage.set(testKey, JSON.stringify({t:Date.now()}), false);
+    if(!ok){ STORAGE_OK = false; return false; }
+    STORAGE_OK = true;
+    return true;
+  }catch(e){ STORAGE_OK = false; return false; }
+}
+
+function genId(len){
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for(let i=0;i<len;i++) s += chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function nowIso(){ return new Date().toISOString(); }
+function fmtDate(iso){
+  try{ const d = new Date(iso); return d.toLocaleDateString(undefined,{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); }
+  catch(e){ return iso; }
+}
+function scoreClass(v){
+  if(v===3) return 'sel-target';
+  if(v===1||v===2) return 'sel-below';
+  return 'sel-above';
+}
+function avg(arr){ if(!arr.length) return 0; return arr.reduce((a,b)=>a+b,0)/arr.length; }
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* Heuristic: does a starred attribute's footnote apply to this product? */
+const STOP_WORDS = ['bread','cake','bun','kebab','rusk','naan','samosa','topping','toppings',
+  'paratha','parathas','shawarma','tortilla','sheermal','chicken','products','product','plain','only'];
+function tokensOf(name){
+  return name.toLowerCase().split(/[\s\/\(\),]+/).filter(t => t.length>3 && !STOP_WORDS.includes(t));
+}
+/* Scan text for known full product names, longest-match-first (masking each match so a
+   short name like "Burger Bun" can't be falsely found inside a longer sibling name like
+   "Brioche Burger Bun"). Returns the exact names found, plus the leftover text with those
+   matches blanked out - used for a word-overlap fallback that catches abbreviated mentions
+   like "Wholewheat & Multigrain only" (missing the trailing "Bread"). */
+function scanProducts(text, allProducts){
+  const sorted = [...allProducts].sort((a,b)=>b.length-a.length);
+  const found = [];
+  let leftover = text;
+  sorted.forEach(q=>{
+    const ql = q.toLowerCase();
+    if(ql && leftover.includes(ql)){
+      found.push(q);
+      leftover = leftover.split(ql).join(' '.repeat(ql.length));
+    }
+  });
+  return {found, leftover};
+}
+function attributeApplies(attr, section, productName, allProducts){
+  if(!attr.stars) return true;
+  const note = (section.notes||[]).find(n => n.stars===attr.stars);
+  if(!note) return true;
+  const text = note.text.toLowerCase();
+  const skipMatch = text.match(/skip for ([^.;]+)/);
+  const skipText = skipMatch ? skipMatch[1] : '';
+  const restText = skipMatch ? text.replace(skipMatch[0],'') : text;
+  const toks = tokensOf(productName);
+
+  const skipScan = scanProducts(skipText, allProducts);
+  if(skipScan.found.includes(productName)) return false;
+  if(toks.some(t => skipScan.leftover.includes(t))) return false;
+
+  const restScan = scanProducts(restText, allProducts);
+  if(restScan.found.includes(productName)) return true;
+  if(toks.some(t => restScan.leftover.includes(t))) return true;
+  // some other specific product(s) were named and this one wasn't - not applicable
+  if(restScan.found.length) return false;
+  // note names no product at all (fully generic wording) - default to applicable
+  return true;
+}
+
+/* ============ STATE ============ */
+let state = {
+  screen: 'landing',
+  toast: null,
+  build: null,
+  hostSessionId: null,
+  hostSession: null,
+  hostResults: null,
+  editingSubmission: null,
+  joinCode: '',
+  session: null,
+  panelist: null,
+  currentProduct: null,
+  currentSample: null,
+  activeTab: 0,
+  scores: {},
+  comment: '',
+  completed: {},
+  submitting: false,
+};
+
+function setState(patch){
+  Object.assign(state, patch);
+  render();
+}
+function showToast(msg){
+  state.toast = msg;
+  render();
+  setTimeout(()=>{ if(state.toast===msg){ state.toast=null; render(); } }, 2200);
+}
+
+function getUrlSession(){
+  try{
+    const url = new URL(window.location.href);
+    const q = url.searchParams.get('session');
+    if(q) return q.toUpperCase();
+    const h = window.location.hash.match(/session=([A-Z0-9]+)/i);
+    if(h) return h[1].toUpperCase();
+  }catch(e){}
+  return null;
+}
+
+/* ============ SECTION BUILDING (host personalization defaults) ============ */
+function buildDefaultSections(categoryKey, productNames){
+  const cat = CATEGORIES.find(c=>c.key===categoryKey);
+  if(!cat) return [];
+  return cat.sections.map(sec => {
+    const attrs = sec.attributes.map(a => {
+      let on = false;
+      if(!productNames || !productNames.length){ on = !a.stars; }
+      else { on = productNames.some(p => attributeApplies(a, sec, p, cat.products)); }
+      return Object.assign({}, a, {on});
+    });
+    return {letter:sec.letter, name:sec.name, notes:sec.notes||[], on:true, attributes:attrs};
+  });
+}
+
+/* ============ RENDER ROOT ============ */
+function render(){
+  const app = document.getElementById('app');
+  let html = '';
+  switch(state.screen){
+    case 'landing': html = renderLanding(); break;
+    case 'hostNewCategory': html = renderHostNewCategory(); break;
+    case 'hostNewProducts': html = renderHostNewProducts(); break;
+    case 'hostNewPersonalize': html = renderHostNewPersonalize(); break;
+    case 'hostPublish': html = renderHostPublish(); break;
+    case 'hostSessions': html = renderHostSessions(); break;
+    case 'hostDashboard': html = renderHostDashboard(); break;
+    case 'joinCode': html = renderJoinCode(); break;
+    case 'joinCredentials': html = renderJoinCredentials(); break;
+    case 'joinProduct': html = renderJoinProduct(); break;
+    case 'joinSample': html = renderJoinSample(); break;
+    case 'joinScore': html = renderJoinScore(); break;
+    case 'joinDone': html = renderJoinDone(); break;
+    default: html = renderLanding();
+  }
+  if(state.toast) html += `<div class="toast">${escapeHtml(state.toast)}</div>`;
+  app.innerHTML = html;
+  postRender();
+}
+
+function postRender(){
+  // QR canvas
+  const qrCanvas = document.getElementById('qr-canvas');
+  if(qrCanvas && window.QRious && state.hostSession){
+    const url = buildJoinUrl(state.hostSession.id);
+    new QRious({ element: qrCanvas, value: url, size: 220, background:'#ffffff', foreground:'#2B211E', level:'M' });
+  }
+  // Charts
+  if(state._chartData && window.Chart){
+    drawCharts(state._chartData);
+  }
+  // autofocus first text input on credential screen
+  const firstInput = document.querySelector('[data-autofocus]');
+  if(firstInput) firstInput.focus();
+}
+
+function buildJoinUrl(sessionId){
+  let base = window.location.href.split('#')[0].split('?')[0];
+  return base + '?session=' + sessionId;
+}
+/* If this page is being previewed inside Claude (an unpublished artifact), its address
+   is a sandboxed location like about:srcdoc or a blob: URL - not a real link anyone
+   else's device can open. Only a genuine http(s) address can work as a QR/link. */
+function joinUrlIsShareable(){
+  try{
+    const href = window.location.href;
+    return /^https?:\/\//i.test(href) && !/srcdoc/i.test(href);
+  }catch(e){ return false; }
+}
+
+/* ============ EVENT DELEGATION ============ */
+document.addEventListener('click', function(e){
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  const action = el.getAttribute('data-action');
+  const arg = el.getAttribute('data-arg');
+  const arg2 = el.getAttribute('data-arg2');
+  if(typeof ACTIONS[action] === 'function') ACTIONS[action](arg, arg2, el);
+});
+document.addEventListener('input', function(e){
+  const el = e.target.closest('[data-bind]');
+  if(!el) return;
+  const path = el.getAttribute('data-bind');
+  bindSet(path, el.value);
+});
+
+function bindSet(path, value){
+  const parts = path.split('.');
+  let obj = state;
+  for(let i=0;i<parts.length-1;i++){ obj = obj[parts[i]]; }
+  obj[parts[parts.length-1]] = value;
+}
+
+/* ============ LANDING ============ */
+function renderLanding(){
+  return `
+  <div class="topbar">
+    <div class="brand">Dawn Foods Corp. Ltd. — QA</div>
+    <h1>Sensory Bench</h1>
+    <div class="sub">Run a tasting panel. Score by feel, taste and aroma.</div>
+  </div>
+  <div class="screen">
+    <div class="card" data-action="goto" data-arg="joinCode" style="cursor:pointer;">
+      <h2>Join a tasting</h2>
+      <p class="hint">Scan a QR from your session host, or enter the code you were given.</p>
+      <button class="btn btn-primary" data-action="goto" data-arg="joinCode">Enter a session code</button>
+    </div>
+    <div class="section-label">Running the panel?</div>
+    <div class="card">
+      <h2>Host tools</h2>
+      <p class="hint">Build a performa, publish it as a QR code, and watch scores come in live.</p>
+      <div class="row-btns" style="margin-bottom:10px;">
+        <button class="btn btn-outline" data-action="startNewSession">New session</button>
+        <button class="btn btn-outline" data-action="goto" data-arg="hostSessions">My sessions</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============ ACTIONS ============ */
+const ACTIONS = {
+  goto: (arg)=>{ if(arg==='hostSessions') _hostSessionsCache=null; setState({screen: arg}); },
+
+  startNewSession: ()=>{
+    setState({screen:'hostNewCategory', build:{categoryKey:null, products:[], sections:null}});
+  },
+
+  pickCategory: (key)=>{
+    state.build.categoryKey = key;
+    state.build.products = [];
+    setState({screen:'hostNewProducts'});
+  },
+
+  toggleBuildProduct: (name)=>{
+    const idx = state.build.products.findIndex(p=>p.name===name);
+    if(idx>=0){ state.build.products.splice(idx,1); }
+    else { state.build.products.push({name, samples:[]}); }
+    render();
+  },
+
+  addSample: (productName)=>{
+    const p = state.build.products.find(p=>p.name===productName);
+    if(!p) return;
+    const n = p.samples.length;
+    const letter = String.fromCharCode(65+n);
+    p.samples.push({code:'Sample '+letter, label:''});
+    render();
+  },
+  removeSample: (productName, idxStr)=>{
+    const p = state.build.products.find(p=>p.name===productName);
+    if(!p) return;
+    p.samples.splice(parseInt(idxStr,10),1);
+    render();
+  },
+  updateSampleCode: (productName, idxStr, el)=>{
+    const p = state.build.products.find(p=>p.name===productName);
+    if(!p) return;
+    p.samples[parseInt(idxStr,10)].code = el.value;
+  },
+  updateSampleLabel: (productName, idxStr, el)=>{
+    const p = state.build.products.find(p=>p.name===productName);
+    if(!p) return;
+    p.samples[parseInt(idxStr,10)].label = el.value;
+  },
+
+  toBuildPersonalize: ()=>{
+    if(!state.build.products.length){ showToast('Pick at least one product'); return; }
+    const withSamples = state.build.products.filter(p=>p.samples.length>0);
+    if(!withSamples.length){ showToast('Add at least one sample'); return; }
+    state.build.products = withSamples;
+    if(!state.build.sections){
+      state.build.sections = buildDefaultSections(state.build.categoryKey, state.build.products.map(p=>p.name));
+    }
+    setState({screen:'hostNewPersonalize'});
+  },
+
+  toggleSection: (letter)=>{
+    const sec = state.build.sections.find(s=>s.letter===letter);
+    sec.on = !sec.on;
+    render();
+  },
+  toggleAttr: (letter, attrId)=>{
+    const sec = state.build.sections.find(s=>s.letter===letter);
+    const a = sec.attributes.find(a=>a.id===attrId);
+    a.on = !a.on;
+    render();
+  },
+
+  publishSession: async ()=>{
+    const enabledSections = state.build.sections
+      .filter(s=>s.on)
+      .map(s=>({letter:s.letter, name:s.name, attributes:s.attributes.filter(a=>a.on).map(a=>({id:a.id,name:a.name,low:a.low,mid:a.mid,high:a.high}))}))
+      .filter(s=>s.attributes.length>0);
+    if(!enabledSections.length){ showToast('Enable at least one parameter'); return; }
+    const cat = CATEGORIES.find(c=>c.key===state.build.categoryKey);
+    const id = genId(6);
+    const session = {
+      id, categoryKey: state.build.categoryKey, categoryTitle: cat.title,
+      products: state.build.products, sections: enabledSections,
+      createdAt: nowIso(), status:'open'
+    };
+    const savedSession = await storeSet('session:'+id, session, true);
+    const savedResults = await storeSet('results:'+id, [], true);
+    // Don't trust the write call alone - read it back from shared storage. This is what
+    // a panelist's device will do when they enter the code, so it's the real test of
+    // whether the session actually exists for anyone else.
+    const verify = await storeGet('session:'+id, true);
+    if(!savedSession || !savedResults || !verify){
+      showToast('Could not save the session — storage is unavailable here');
+      setState({screen:'hostNewPersonalize'});
+      return;
+    }
+    const mine = (await storeGet('host-sessions', false)) || [];
+    mine.unshift({id, categoryTitle: cat.title, createdAt: session.createdAt});
+    await storeSet('host-sessions', mine, false);
+    setState({screen:'hostPublish', hostSession:session, hostSessionId:id});
+  },
+
+  copyLink: ()=>{
+    const url = buildJoinUrl(state.hostSession.id);
+    navigator.clipboard && navigator.clipboard.writeText(url).then(()=>showToast('Link copied')).catch(()=>showToast(url));
+  },
+
+  goDashboard: async (id)=>{
+    const sid = id || state.hostSessionId;
+    setState({screen:'hostDashboard', hostSessionId: sid, hostSession:null, hostResults:null});
+    const session = await storeGet('session:'+sid, true);
+    const results = (await storeGet('results:'+sid, true)) || [];
+    setState({hostSession:session, hostResults:results});
+  },
+
+  loadHostSessions: async ()=>{},
+
+  toggleSessionStatus: async ()=>{
+    state.hostSession.status = state.hostSession.status==='open' ? 'closed':'open';
+    await storeSet('session:'+state.hostSession.id, state.hostSession, true);
+    render();
+  },
+
+  deleteSubmission: async (idxStr)=>{
+    const idx = parseInt(idxStr,10);
+    if(!confirm('Remove this submission?')) return;
+    state.hostResults.splice(idx,1);
+    await storeSet('results:'+state.hostSession.id, state.hostResults, true);
+    render();
+  },
+
+  startEditSubmission: (idxStr)=>{
+    state.editingSubmission = parseInt(idxStr,10);
+    render();
+  },
+  cancelEditSubmission: ()=>{ state.editingSubmission=null; render(); },
+  saveEditSubmission: async (idxStr)=>{
+    const idx = parseInt(idxStr,10);
+    const sub = state.hostResults[idx];
+    document.querySelectorAll('[data-edit-attr]').forEach(inp=>{
+      sub.scores[inp.getAttribute('data-edit-attr')] = parseInt(inp.value,10);
+    });
+    const nameInp = document.querySelector('[data-edit-name]');
+    if(nameInp) sub.name = nameInp.value;
+    await storeSet('results:'+state.hostSession.id, state.hostResults, true);
+    state.editingSubmission = null;
+    render();
+  },
+
+  exportReport: ()=>{
+    exportCSV();
+  },
+
+  refreshDashboard: async ()=>{
+    const results = (await storeGet('results:'+state.hostSession.id, true)) || [];
+    setState({hostResults:results});
+    showToast('Refreshed');
+  },
+
+  /* ---- join flow ---- */
+  loadSessionByCode: async ()=>{
+    const code = (state.joinCode||'').trim().toUpperCase();
+    if(!code){ showToast('Enter a code'); return; }
+    const storageWorks = await checkStorageAvailable();
+    if(!storageWorks){ showToast('Cannot connect to storage — try reloading the app'); return; }
+    const session = await storeGet('session:'+code, true);
+    if(!session){ showToast('Session not found — check the code with your host'); return; }
+    if(session.status!=='open'){ showToast('This session is closed'); return; }
+    setState({session, screen:'joinCredentials', panelist:{name:'',age:'',gender:'',dept:''}});
+  },
+
+  submitCredentials: ()=>{
+    if(!state.panelist.name || !state.panelist.name.trim()){ showToast('Enter your name'); return; }
+    if(state.session.products.length===1){
+      setState({screen:'joinSample', currentProduct: state.session.products[0].name});
+    } else {
+      setState({screen:'joinProduct'});
+    }
+  },
+
+  pickJoinProduct: (name)=>{
+    setState({screen:'joinSample', currentProduct:name});
+  },
+
+  pickSample: (code)=>{
+    const p = state.session.products.find(p=>p.name===state.currentProduct);
+    const sample = p.samples.find(s=>s.code===code);
+    const scores = {};
+    setState({screen:'joinScore', currentSample:sample, activeTab:0, scores, comment:''});
+  },
+
+  setActiveTab: (idxStr)=>{
+    setState({activeTab: parseInt(idxStr,10)});
+  },
+
+  scoreAttr: (attrId, valStr)=>{
+    state.scores[attrId] = parseInt(valStr,10);
+    render();
+  },
+
+  nextTab: async ()=>{
+    const sections = state.session.sections;
+    if(state.activeTab < sections.length-1){
+      setState({activeTab: state.activeTab+1});
+      window.scrollTo(0,0);
+    } else {
+      await ACTIONS.submitSample();
+    }
+  },
+  prevTab: ()=>{
+    if(state.activeTab>0){ setState({activeTab: state.activeTab-1}); window.scrollTo(0,0); }
+    else { setState({screen:'joinSample'}); }
+  },
+
+  submitSample: async ()=>{
+    if(state.submitting) return;
+    const allAttrs = [];
+    state.session.sections.forEach(s=>s.attributes.forEach(a=>allAttrs.push(a.id)));
+    const missing = allAttrs.filter(id => !(id in state.scores));
+    if(missing.length){ showToast('Score every attribute before submitting'); return; }
+    // Snapshot everything this save needs BEFORE the first await, so if the panelist (or a
+    // fast double-tap) moves on to the next sample while this is in flight, that later
+    // navigation can't corrupt or overwrite the data we're about to save here.
+    const sessionId = state.session.id;
+    const snapshotScores = Object.assign({}, state.scores);
+    const snapshotProduct = state.currentProduct;
+    const snapshotSample = state.currentSample;
+    const snapshotComment = state.comment;
+    const snapshotPanelist = Object.assign({}, state.panelist);
+    setState({submitting:true});
+    const results = (await storeGet('results:'+sessionId, true)) || [];
+    results.push({
+      panelistId: genId(8),
+      name: snapshotPanelist.name, age: snapshotPanelist.age, gender: snapshotPanelist.gender, dept: snapshotPanelist.dept,
+      product: snapshotProduct, sampleCode: snapshotSample.code, sampleLabel: snapshotSample.label,
+      scores: snapshotScores, comment: snapshotComment,
+      submittedAt: nowIso()
+    });
+    await storeSet('results:'+sessionId, results, true);
+    if(!state.completed[snapshotProduct]) state.completed[snapshotProduct]=[];
+    state.completed[snapshotProduct].push(snapshotSample.code);
+    state.submitting = false;
+    if(state.currentSample === snapshotSample){
+      setState({screen:'joinSample', scores:{}, comment:''});
+    } else {
+      render();
+    }
+    showToast('Saved '+snapshotSample.code);
+  },
+
+  finishProduct: ()=>{
+    if(state.session.products.length>1){ setState({screen:'joinProduct'}); }
+    else { setState({screen:'joinDone'}); }
+  },
+  allDone: ()=>{ setState({screen:'joinDone'}); },
+
+  startAnother: ()=>{
+    setState({screen:'joinCode', joinCode:'', session:null, panelist:null, completed:{}});
+  }
+};
+
+/* ============ HOST: pick category ============ */
+function renderHostNewCategory(){
+  const items = CATEGORIES.map(c => `
+    <div class="choice" data-action="pickCategory" data-arg="${c.key}">
+      <div>
+        <div class="name">${escapeHtml(c.title)}</div>
+        <div class="meta">${c.products.length} product${c.products.length>1?'s':''} · ${c.sections.length} parameter groups</div>
+      </div>
+      <div class="checkmark"></div>
+    </div>`).join('');
+  return `
+  <div class="topbar">
+    <div class="topbar-row">
+      <button class="back-btn" data-action="goto" data-arg="landing">‹ Back</button>
+    </div>
+    <h1 style="margin-top:8px;">New session</h1>
+    <div class="sub">Step 1 · Choose a product category</div>
+  </div>
+  <div class="screen">
+    <div class="choice-list">${items}</div>
+  </div>`;
+}
+
+/* ============ HOST: products & samples ============ */
+function renderHostNewProducts(){
+  const cat = CATEGORIES.find(c=>c.key===state.build.categoryKey);
+  const chosen = state.build.products.map(p=>p.name);
+  const list = cat.products.map(name => {
+    const sel = chosen.includes(name);
+    return `<div class="choice ${sel?'selected':''}" data-action="toggleBuildProduct" data-arg="${escapeHtml(name)}">
+      <div class="name">${escapeHtml(name)}</div><div class="checkmark"></div>
+    </div>`;
+  }).join('');
+
+  const sampleBlocks = state.build.products.map(p => {
+    const rows = p.samples.map((s,idx) => `
+      <div class="sample-row">
+        <input type="text" value="${escapeHtml(s.code)}" placeholder="Sample code"
+          onchange="ACTIONS.updateSampleCode('${escapeHtml(p.name).replace(/'/g,"\\'")}','${idx}',this)">
+        <input type="text" value="${escapeHtml(s.label)}" placeholder="Label (optional)" style="max-width:34%;"
+          onchange="ACTIONS.updateSampleLabel('${escapeHtml(p.name).replace(/'/g,"\\'")}','${idx}',this)">
+        <span class="chip" data-action="removeSample" data-arg="${escapeHtml(p.name)}" data-arg2="${idx}" style="cursor:pointer;"><span class="x">✕</span></span>
+      </div>`).join('');
+    return `
+    <div class="card">
+      <h2 style="font-size:15px;">${escapeHtml(p.name)}</h2>
+      <div class="sample-list">${rows || '<p class="hint">No samples yet.</p>'}</div>
+      <button class="btn btn-outline btn-sm" style="margin-top:8px;" data-action="addSample" data-arg="${escapeHtml(p.name)}">+ Add sample</button>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="topbar">
+    <div class="topbar-row">
+      <button class="back-btn" data-action="goto" data-arg="hostNewCategory">‹ Back</button>
+    </div>
+    <h1 style="margin-top:8px;">${escapeHtml(cat.title)}</h1>
+    <div class="sub">Step 2 · Which products, and how many samples of each?</div>
+  </div>
+  <div class="screen">
+    <div class="section-label">Products in this session</div>
+    <div class="choice-list">${list}</div>
+    ${state.build.products.length ? `<div class="section-label">Samples per product</div>${sampleBlocks}` : ''}
+  </div>
+  <div class="footer-bar">
+    <button class="btn btn-primary" data-action="toBuildPersonalize">Next: build performa</button>
+  </div>`;
+}
+
+/* ============ HOST: personalize ============ */
+function renderHostNewPersonalize(){
+  const cat = CATEGORIES.find(c=>c.key===state.build.categoryKey);
+  const sections = state.build.sections.map(sec => {
+    const attrRows = sec.attributes.map(a => `
+      <div class="pcard ${a.on?'':'off'}">
+        <div class="switch ${a.on?'on':''}" data-action="toggleAttr" data-arg="${sec.letter}" data-arg2="${a.id}"></div>
+        <div style="flex:1;">
+          <div class="pname">${escapeHtml(a.name)}</div>
+          ${a.stars ? `<div class="pnote">${escapeHtml((sec.notes.find(n=>n.stars===a.stars)||{}).text||'')}</div>` : ''}
+        </div>
+      </div>`).join('');
+    return `
+    <div>
+      <div class="section-toggle">
+        <div class="stitle">${sec.letter}. ${escapeHtml(sec.name)}</div>
+        <div class="switch ${sec.on?'on':''}" data-action="toggleSection" data-arg="${sec.letter}"></div>
+      </div>
+      ${sec.on ? attrRows : '<p class="hint" style="padding-left:2px;">Section hidden from the performa.</p>'}
+    </div>`;
+  }).join('');
+
+  const enabledCount = state.build.sections.reduce((n,s)=> n + (s.on ? s.attributes.filter(a=>a.on).length : 0), 0);
+
+  return `
+  <div class="topbar">
+    <div class="topbar-row">
+      <button class="back-btn" data-action="goto" data-arg="hostNewProducts">‹ Back</button>
+    </div>
+    <h1 style="margin-top:8px;">Personalize the performa</h1>
+    <div class="sub">Step 3 · Turn parameters on or off. We pre-selected the ones that usually apply.</div>
+  </div>
+  <div class="screen">
+    <div class="card" style="background:var(--paper-dim);border-color:var(--gold);">
+      <p class="hint" style="margin:0;">${enabledCount} parameter${enabledCount===1?'':'s'} enabled across ${state.build.products.length} product${state.build.products.length>1?'s':''}. Panelists will only see what's switched on here.</p>
+    </div>
+    ${sections}
+  </div>
+  <div class="footer-bar">
+    <button class="btn btn-primary" data-action="publishSession">Publish &amp; generate QR</button>
+  </div>`;
+}
+
+/* ============ HOST: publish / QR ============ */
+function renderHostPublish(){
+  const s = state.hostSession;
+  const shareable = joinUrlIsShareable();
+  const productLines = s.products.map(p=>`<div class="panel-entry"><span class="pname">${escapeHtml(p.name)}</span> <span class="pmeta">— ${p.samples.map(sm=>escapeHtml(sm.code)).join(', ')}</span></div>`).join('');
+  return `
+  <div class="topbar">
+    <h1>Session is live</h1>
+    <div class="sub">${escapeHtml(s.categoryTitle)}</div>
+  </div>
+  <div class="screen">
+    ${!shareable ? `
+    <div class="card" style="background:#FBF1F2;border-color:var(--below);">
+      <h2 style="color:var(--below);">QR/link may not work yet</h2>
+      <p class="hint" style="margin:0;">This page isn't currently at a public address other devices can open (it looks like a local preview). Publish/share this app first so it has a real link, or just tell panelists to open the app and type the code <strong>${s.id}</strong> directly on the "Join a tasting" screen.</p>
+    </div>` : ''}
+    <div class="card">
+      <div class="qr-wrap"><canvas id="qr-canvas"></canvas></div>
+      <div class="code-display">${s.id}</div>
+      <div class="code-hint">Panelists scan the QR, or open the app and type this code.</div>
+      <div class="row-btns" style="margin-top:12px;">
+        <button class="btn btn-outline btn-sm" data-action="copyLink">Copy link</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>What's in this performa</h2>
+      ${productLines}
+    </div>
+    <button class="btn btn-gold" data-action="goDashboard" data-arg="${s.id}">Go to results dashboard</button>
+    <div style="height:10px;"></div>
+    <button class="btn btn-ghost" data-action="goto" data-arg="landing">Back to home</button>
+  </div>`;
+}
+
+/* ============ HOST: my sessions ============ */
+let _hostSessionsCache = null;
+function renderHostSessions(){
+  if(_hostSessionsCache===null){
+    storeGet('host-sessions', false).then(list=>{ _hostSessionsCache = list||[]; render(); });
+    return `<div class="topbar"><div class="topbar-row"><button class="back-btn" data-action="goto" data-arg="landing">‹ Back</button></div><h1 style="margin-top:8px;">My sessions</h1></div><div class="screen"><div class="empty"><div class="big">⏳</div>Loading…</div></div>`;
+  }
+  const list = _hostSessionsCache;
+  const items = list.length ? list.map(s => `
+    <div class="choice" data-action="goDashboard" data-arg="${s.id}">
+      <div>
+        <div class="name">${escapeHtml(s.categoryTitle)}</div>
+        <div class="meta">Code ${s.id} · ${fmtDate(s.createdAt)}</div>
+      </div>
+      <div class="checkmark" style="border:none;">›</div>
+    </div>`).join('') : `<div class="empty"><div class="big">🗒️</div>No sessions yet on this device.</div>`;
+  return `
+  <div class="topbar">
+    <div class="topbar-row"><button class="back-btn" data-action="goto" data-arg="landing">‹ Back</button></div>
+    <h1 style="margin-top:8px;">My sessions</h1>
+    <div class="sub">Only sessions you created on this device</div>
+  </div>
+  <div class="screen">
+    <div class="choice-list">${items}</div>
+    <button class="btn btn-primary" style="margin-top:16px;" data-action="startNewSession">+ New session</button>
+  </div>`;
+}
+
+/* ============ HOST: dashboard ============ */
+function allAttrsFlat(session){
+  const out = [];
+  session.sections.forEach(s=>s.attributes.forEach(a=>out.push(Object.assign({section:s.name},a))));
+  return out;
+}
+function computeRanking(session, results, productName){
+  const subs = results.filter(r=>r.product===productName);
+  const codes = [...new Set(subs.map(r=>r.sampleCode))];
+  const attrs = allAttrsFlat(session);
+  const overallAttr = attrs.find(a=>a.name==='Overall Liking');
+  return codes.map(code => {
+    const rows = subs.filter(r=>r.sampleCode===code);
+    const nonOverallAttrs = attrs.filter(a=>a.name!=='Overall Liking');
+    const allScores = [];
+    rows.forEach(r => nonOverallAttrs.forEach(a=>{ if(a.id in r.scores) allScores.push(r.scores[a.id]); }));
+    const avgAttr = avg(allScores);
+    const overallScores = overallAttr ? rows.map(r=>r.scores[overallAttr.id]).filter(v=>v!=null) : [];
+    const overallAvg = avg(overallScores);
+    const composite = (avgAttr + overallAvg) / 2;
+    const deviation = Math.abs(avgAttr - 3);
+    return {code, n: rows.length, avgAttr, overallAvg, composite, deviation};
+  }).sort((a,b)=> b.composite - a.composite)
+    .map((r,i)=>Object.assign({},r,{rank:i+1}));
+}
+
+function renderHostDashboard(){
+  if(!state.hostSession){
+    return `<div class="topbar"><div class="topbar-row"><button class="back-btn" data-action="goto" data-arg="landing">‹ Back</button></div><h1 style="margin-top:8px;">Results</h1></div><div class="screen"><div class="empty"><div class="big">⏳</div>Loading session…</div></div>`;
+  }
+  const session = state.hostSession;
+  const results = state.hostResults || [];
+  const products = session.products.map(p=>p.name);
+  const totalPanelists = new Set(results.map(r=>r.panelistId)).size;
+
+  const productBlocks = products.map(pname => {
+    const ranking = computeRanking(session, results, pname);
+    const rankRows = ranking.map(r => `
+      <tr>
+        <td>${escapeHtml(r.code)}</td>
+        <td>${r.n}</td>
+        <td>${r.avgAttr.toFixed(2)}</td>
+        <td>${r.overallAvg.toFixed(2)}</td>
+        <td>${r.composite.toFixed(2)}</td>
+        <td><span class="rank-badge">${r.rank}</span></td>
+      </tr>`).join('');
+    const chartId = 'chart-'+pname.replace(/[^a-z0-9]/gi,'');
+    if(ranking.length){
+      state._chartData = state._chartData || [];
+      state._chartData.push({id:chartId, labels: ranking.map(r=>r.code), data: ranking.map(r=>r.avgAttr)});
+    }
+    return `
+    <div class="card">
+      <h2 style="font-size:15px;">${escapeHtml(pname)}</h2>
+      ${ranking.length ? `
+      <div style="margin:8px 0 14px;"><canvas class="chart-canvas" id="${chartId}" height="160"></canvas></div>
+      <div style="overflow-x:auto;">
+      <table class="rank-table">
+        <thead><tr><th>Sample</th><th>n</th><th>Attr avg</th><th>Overall</th><th>Composite</th><th>Rank</th></tr></thead>
+        <tbody>${rankRows}</tbody>
+      </table>
+      </div>` : `<p class="hint">No submissions yet for this product.</p>`}
+    </div>`;
+  }).join('');
+
+  const submissionRows = results.map((r,idx) => {
+    if(state.editingSubmission===idx){
+      const attrs = allAttrsFlat(session);
+      const inputs = attrs.map(a=>`
+        <div class="field" style="margin-bottom:8px;">
+          <label>${escapeHtml(a.name)}</label>
+          <input type="number" min="1" max="5" value="${r.scores[a.id]!=null?r.scores[a.id]:''}" data-edit-attr="${a.id}">
+        </div>`).join('');
+      return `
+      <div class="card">
+        <div class="field"><label>Name</label><input type="text" value="${escapeHtml(r.name)}" data-edit-name></div>
+        ${inputs}
+        <div class="row-btns">
+          <button class="btn btn-outline" data-action="cancelEditSubmission">Cancel</button>
+          <button class="btn btn-primary" data-action="saveEditSubmission" data-arg="${idx}">Save</button>
+        </div>
+      </div>`;
+    }
+    return `
+    <div class="panel-entry">
+      <div style="display:flex;justify-content:space-between;">
+        <div>
+          <div class="pname">${escapeHtml(r.name)} <span class="pmeta">${r.age?('· '+escapeHtml(String(r.age))+'y'):''}${r.gender?(' · '+escapeHtml(r.gender)):''}</span></div>
+          <div class="pmeta">${escapeHtml(r.product)} — ${escapeHtml(r.sampleCode)} · ${fmtDate(r.submittedAt)}</div>
+          ${r.comment ? `<div class="pmeta" style="font-style:italic;margin-top:2px;">"${escapeHtml(r.comment)}"</div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <button class="btn btn-outline btn-sm" data-action="startEditSubmission" data-arg="${idx}">Edit</button>
+          <button class="btn btn-danger btn-sm" data-action="deleteSubmission" data-arg="${idx}">Remove</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  state._chartData = state._chartData || [];
+
+  return `
+  <div class="topbar">
+    <div class="topbar-row">
+      <button class="back-btn" data-action="goto" data-arg="landing">‹ Home</button>
+      <button class="back-btn" data-action="refreshDashboard">↻ Refresh</button>
+    </div>
+    <h1 style="margin-top:8px;">${escapeHtml(session.categoryTitle)}</h1>
+    <div class="sub">Code ${session.id} · ${session.status==='open'?'Open for scoring':'Closed'}</div>
+  </div>
+  <div class="screen">
+    <div class="stat-grid">
+      <div class="stat-box"><div class="num">${totalPanelists}</div><div class="lbl">Panelists</div></div>
+      <div class="stat-box"><div class="num">${results.length}</div><div class="lbl">Scored samples</div></div>
+    </div>
+    <div class="row-btns" style="margin:12px 0 6px;">
+      <button class="btn btn-outline btn-sm" data-action="toggleSessionStatus">${session.status==='open'?'Close session':'Reopen session'}</button>
+      <button class="btn btn-outline btn-sm" data-action="exportReport">Export CSV</button>
+    </div>
+    <div class="section-label">Results by product</div>
+    ${productBlocks}
+    <div class="section-label">All submissions</div>
+    ${submissionRows || '<p class="hint">No panelists have submitted yet. Share the QR code to get started.</p>'}
+  </div>`;
+}
+
+function drawCharts(chartList){
+  chartList.forEach(cd => {
+    const canvas = document.getElementById(cd.id);
+    if(!canvas) return;
+    if(canvas._chart) canvas._chart.destroy();
+    canvas._chart = new Chart(canvas, {
+      type:'bar',
+      data:{ labels: cd.labels, datasets:[{ label:'Avg attribute score', data: cd.data,
+        backgroundColor:'#C89B3C', borderRadius:5 }]},
+      options:{
+        responsive:true,
+        plugins:{ legend:{display:false} },
+        scales:{ y:{ min:0, max:5, ticks:{stepSize:1} } }
+      }
+    });
+  });
+  state._chartData = null;
+}
+
+function exportCSV(){
+  const session = state.hostSession, results = state.hostResults||[];
+  const attrs = allAttrsFlat(session);
+  const header = ['Panelist','Age','Gender','Department','Product','Sample','Submitted', ...attrs.map(a=>a.name), 'Comment'];
+  const lines = [header.join(',')];
+  results.forEach(r=>{
+    const row = [r.name, r.age||'', r.gender||'', r.dept||'', r.product, r.sampleCode, r.submittedAt,
+      ...attrs.map(a=> r.scores[a.id]!=null ? r.scores[a.id] : ''), (r.comment||'').replace(/,/g,';')];
+    lines.push(row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'DFCL_Sensory_'+session.id+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ============ JOIN: code entry ============ */
+function renderJoinCode(){
+  return `
+  <div class="topbar">
+    <div class="topbar-row"><button class="back-btn" data-action="goto" data-arg="landing">‹ Back</button></div>
+    <h1 style="margin-top:8px;">Join a tasting</h1>
+    <div class="sub">Enter the session code from your host</div>
+  </div>
+  <div class="screen">
+    <div class="card">
+      <div class="field">
+        <label>Session code</label>
+        <input type="text" data-autofocus style="text-transform:uppercase;font-size:20px;letter-spacing:0.1em;text-align:center;"
+          value="${escapeHtml(state.joinCode)}" oninput="state.joinCode=this.value.toUpperCase()" placeholder="e.g. F3K9QX">
+      </div>
+      <button class="btn btn-primary" data-action="loadSessionByCode">Continue</button>
+    </div>
+  </div>`;
+}
+
+/* ============ JOIN: credentials ============ */
+function renderJoinCredentials(){
+  const p = state.panelist;
+  const genders = ['Male','Female','Other'];
+  return `
+  <div class="topbar">
+    <div class="topbar-row"><button class="back-btn" data-action="goto" data-arg="joinCode">‹ Back</button></div>
+    <h1 style="margin-top:8px;">${escapeHtml(state.session.categoryTitle)}</h1>
+    <div class="sub">Tell us a little about yourself before you begin</div>
+  </div>
+  <div class="screen">
+    <div class="card">
+      <div class="field">
+        <label>Full name</label>
+        <input type="text" data-autofocus value="${escapeHtml(p.name)}" oninput="state.panelist.name=this.value" placeholder="Your name">
+      </div>
+      <div class="field">
+        <label>Age</label>
+        <input type="number" min="10" max="99" value="${escapeHtml(p.age)}" oninput="state.panelist.age=this.value" placeholder="Age">
+      </div>
+      <div class="field">
+        <label>Gender</label>
+        <div class="gender-row">
+          ${genders.map(g=>`<button class="${p.gender===g?'active':''}" onclick="state.panelist.gender='${g}';render();">${g}</button>`).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>Department / Section (optional)</label>
+        <input type="text" value="${escapeHtml(p.dept)}" oninput="state.panelist.dept=this.value" placeholder="e.g. QA, Production">
+      </div>
+      <button class="btn btn-primary" data-action="submitCredentials">Start tasting</button>
+    </div>
+  </div>`;
+}
+
+/* ============ JOIN: pick product ============ */
+function renderJoinProduct(){
+  const products = state.session.products.map(p => {
+    const total = p.samples.length;
+    const done = (state.completed[p.name]||[]).length;
+    return `<div class="choice" data-action="pickJoinProduct" data-arg="${escapeHtml(p.name)}">
+      <div><div class="name">${escapeHtml(p.name)}</div><div class="meta">${done}/${total} samples scored</div></div>
+      <div class="checkmark" style="border:none;">›</div>
+    </div>`;
+  }).join('');
+  const allDone = state.session.products.every(p => (state.completed[p.name]||[]).length >= p.samples.length);
+  return `
+  <div class="topbar">
+    <h1>Choose a product</h1>
+    <div class="sub">Hi ${escapeHtml(state.panelist.name)} — what are you tasting?</div>
+  </div>
+  <div class="screen">
+    <div class="choice-list">${products}</div>
+    ${allDone ? `<button class="btn btn-gold" style="margin-top:16px;" data-action="allDone">Finish tasting</button>` : ''}
+  </div>`;
+}
+
+/* ============ JOIN: pick sample ============ */
+function renderJoinSample(){
+  const p = state.session.products.find(p=>p.name===state.currentProduct);
+  const doneCodes = state.completed[state.currentProduct]||[];
+  const items = p.samples.map(s => {
+    const isDone = doneCodes.includes(s.code);
+    return `<div class="choice ${isDone?'selected':''}" ${isDone?'':`data-action="pickSample" data-arg="${escapeHtml(s.code)}"`}>
+      <div>
+        <div class="name">${escapeHtml(s.code)}</div>
+        ${s.label ? `<div class="meta">${escapeHtml(s.label)}</div>` : ''}
+      </div>
+      <div class="checkmark ${isDone?'selected':''}">${isDone?'':''}</div>
+    </div>`;
+  }).join('');
+  const allSamplesDone = p.samples.every(s=>doneCodes.includes(s.code));
+  return `
+  <div class="topbar">
+    <div class="topbar-row">${state.session.products.length>1?`<button class="back-btn" data-action="goto" data-arg="joinProduct">‹ Products</button>`:''}</div>
+    <h1 style="margin-top:8px;">${escapeHtml(state.currentProduct)}</h1>
+    <div class="sub">Pick a sample code to evaluate</div>
+  </div>
+  <div class="screen">
+    <div class="choice-list">${items}</div>
+    ${allSamplesDone ? `<button class="btn btn-gold" style="margin-top:16px;" data-action="finishProduct">Continue</button>` : ''}
+  </div>`;
+}
+
+/* ============ JOIN: scoring flow ============ */
+function renderJoinScore(){
+  const sections = state.session.sections;
+  const sec = sections[state.activeTab];
+  const tabs = sections.map((s,i)=>{
+    const doneCount = s.attributes.filter(a=>a.id in state.scores).length;
+    const cls = i===state.activeTab ? 'active' : (doneCount===s.attributes.length ? 'done':'');
+    return `<div class="tab ${cls}" data-action="setActiveTab" data-arg="${i}">${escapeHtml(s.name)}</div>`;
+  }).join('');
+
+  const attrCards = sec.attributes.map(a => {
+    const val = state.scores[a.id];
+    const btns = [1,2,3,4,5].map(n => `<button class="${val===n?scoreClass(n):''}" data-action="scoreAttr" data-arg="${a.id}" data-arg2="${n}">${n}</button>`).join('');
+    return `
+    <div class="attr-card">
+      <div class="attr-name">${escapeHtml(a.name)}</div>
+      <div class="scale">${btns}</div>
+      <div class="descriptors">
+        <span style="flex:2;">${escapeHtml(a.low||'')}</span>
+        <span style="flex:1;">${escapeHtml(a.mid||'')}</span>
+        <span style="flex:2;">${escapeHtml(a.high||'')}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  const dots = sections.map((s,i)=>`<span class="${i<=state.activeTab?'on':''}"></span>`).join('');
+  const isLast = state.activeTab === sections.length-1;
+  const commentBox = isLast ? `
+    <div class="field" style="margin-top:8px;">
+      <label>Comments on this sample (optional)</label>
+      <textarea oninput="state.comment=this.value" placeholder="Any defects or observations?">${escapeHtml(state.comment)}</textarea>
+    </div>` : '';
+
+  return `
+  <div class="topbar">
+    <div class="topbar-row">
+      <button class="back-btn" data-action="prevTab">‹ ${state.activeTab===0?'Samples':'Back'}</button>
+    </div>
+    <h1 style="margin-top:8px;">${escapeHtml(state.currentProduct)} — ${escapeHtml(state.currentSample.code)}</h1>
+    <div class="progress-dots">${dots}</div>
+  </div>
+  <div class="screen">
+    <div class="tabstrip">${tabs}</div>
+    <div class="section-label">${sec.letter}. ${escapeHtml(sec.name)}</div>
+    ${attrCards}
+    ${commentBox}
+  </div>
+  <div class="footer-bar">
+    <button class="btn btn-primary" data-action="nextTab" ${state.submitting?'disabled':''}>${state.submitting ? 'Saving…' : (isLast ? 'Submit this sample' : 'Next: '+escapeHtml(sections[state.activeTab+1].name))}</button>
+  </div>`;
+}
+
+/* ============ JOIN: done ============ */
+function renderJoinDone(){
+  return `
+  <div class="topbar"><h1>All done</h1><div class="sub">Thank you for tasting</div></div>
+  <div class="screen">
+    <div class="empty">
+      <div class="big">✅</div>
+      <p>Your scores have been recorded for <strong>${escapeHtml(state.session.categoryTitle)}</strong>. The host can see your results now.</p>
+    </div>
+    <button class="btn btn-outline" data-action="startAnother">Join another session</button>
+  </div>`;
+}
+
+/* ============ BOOTSTRAP ============ */
+(function init(){
+  const urlSession = getUrlSession();
+  if(urlSession){
+    state.joinCode = urlSession;
+    state.screen = 'joinCode';
+    ACTIONS.loadSessionByCode();
+  }
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+// SES (Sensory Evaluation Software) — DFCL Commercial Quality Assurance
+// Masterfile (Category -> Product -> Section -> Attribute) is data-driven and
+// separate from session state. Sessions snapshot their resolved attribute set
+// at publish time so later masterfile edits never retroactively change an
+// in-flight or closed session.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  VIEWER
+}
+
+enum AttributeKind {
+  STANDARD
+  OVERALL_HEDONIC
+}
+
+enum SessionStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum EvaluationType {
+  NPD
+  COMPETITIVE_BENCHMARK
+  ROUTINE_QC
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(ADMIN)
+  region       String?
+  entity       String?
+  createdAt    DateTime @default(now())
+
+  sessions Session[] @relation("CreatedSessions")
+}
+
+model Category {
+  id        String  @id @default(cuid())
+  key       String  @unique // stable slug, e.g. "bread-buns" — used by seed script
+  title     String
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  products Product[]
+  sections Section[]
+  sessions Session[]
+}
+
+model Product {
+  id         String  @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  name       String
+  slug       String
+  sortOrder  Int     @default(0)
+  isActive   Boolean @default(true)
+
+  overrides       AttributeProductOverride[]
+  sessionProducts SessionProduct[]
+
+  @@unique([categoryId, slug])
+}
+
+model Section {
+  id         String  @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  letter     String // "A", "B", ...
+  name       String
+  sortOrder  Int     @default(0)
+  isActive   Boolean @default(true)
+
+  attributes       Attribute[]
+  sessionSections  SessionSection[]
+
+  @@unique([categoryId, letter])
+}
+
+model Attribute {
+  id                String        @id @default(cuid())
+  sectionId         String
+  section           Section       @relation(fields: [sectionId], references: [id])
+  slug              String
+  name              String
+  kind              AttributeKind @default(STANDARD) // OVERALL_HEDONIC = "Overall Liking"
+  lowLabel          String // "1-2 Below Target" descriptor
+  midLabel          String // "3 Target/Ideal" descriptor
+  highLabel         String // "4-5 Above Target" descriptor
+  defaultApplicable Boolean       @default(true)
+  sortOrder         Int           @default(0)
+  isActive          Boolean       @default(true)
+
+  overrides         AttributeProductOverride[]
+  sessionAttributes SessionAttribute[]
+  scores            Score[]
+
+  @@unique([sectionId, slug])
+}
+
+model AttributeProductOverride {
+  id          String    @id @default(cuid())
+  attributeId String
+  attribute   Attribute @relation(fields: [attributeId], references: [id])
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  applies     Boolean
+
+  @@unique([attributeId, productId])
+}
+
+model Session {
+  id             String         @id @default(cuid())
+  name           String
+  categoryId     String
+  category       Category       @relation(fields: [categoryId], references: [id])
+  evaluationType EvaluationType
+  status         SessionStatus  @default(DRAFT)
+  region         String?
+  entity         String?
+  publicToken    String         @unique // long random, used in /s/[token] + QR
+  joinCode       String         @unique // short human-typeable fallback
+  createdById    String
+  createdBy      User           @relation("CreatedSessions", fields: [createdById], references: [id])
+  createdAt      DateTime       @default(now())
+  publishedAt    DateTime?
+  closedAt       DateTime?
+
+  sessionProducts   SessionProduct[]
+  sessionSections   SessionSection[]
+  sessionAttributes SessionAttribute[]
+  panelistVisits    PanelistVisit[]
+
+  @@index([status, createdAt])
+  @@index([categoryId])
+}
+
+model SessionProduct {
+  id        String  @id @default(cuid())
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  sortOrder Int     @default(0)
+
+  samples Sample[]
+
+  @@unique([sessionId, productId])
+}
+
+model Sample {
+  id               String         @id @default(cuid())
+  sessionProductId String
+  sessionProduct   SessionProduct @relation(fields: [sessionProductId], references: [id])
+  sampleName       String
+  sampleCode       String
+  brandName        String?
+  batchNo          String?
+  plantLine        String?
+  sortOrder        Int            @default(0)
+
+  submissions Submission[]
+
+  @@unique([sessionProductId, sampleCode])
+}
+
+model SessionSection {
+  id        String  @id @default(cuid())
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id])
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id])
+  enabled   Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  @@unique([sessionId, sectionId])
+}
+
+model SessionAttribute {
+  id          String    @id @default(cuid())
+  sessionId   String
+  session     Session   @relation(fields: [sessionId], references: [id])
+  attributeId String
+  attribute   Attribute @relation(fields: [attributeId], references: [id])
+  enabled     Boolean   @default(true)
+  sortOrder   Int       @default(0)
+
+  @@unique([sessionId, attributeId])
+}
+
+model PanelistVisit {
+  id         String   @id @default(cuid())
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id])
+  name       String
+  age        Int?
+  gender     String?
+  department String?
+  deviceRef  String? // hashed UA+IP or client-generated uuid, for audit trail
+  joinedAt   DateTime @default(now())
+
+  submissions Submission[]
+}
+
+model Submission {
+  id              String        @id @default(cuid())
+  panelistVisitId String
+  panelistVisit   PanelistVisit @relation(fields: [panelistVisitId], references: [id])
+  sampleId        String
+  sample          Sample        @relation(fields: [sampleId], references: [id])
+  comment         String?
+  excluded        Boolean       @default(false) // host moderation lever; never deleted
+  submittedAt     DateTime      @default(now())
+  deviceRef       String?
+
+  scores Score[]
+
+  @@unique([panelistVisitId, sampleId])
+}
+
+model Score {
+  id           String     @id @default(cuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id])
+  attributeId  String
+  attribute    Attribute  @relation(fields: [attributeId], references: [id])
+  value        Int // 1..5
+
+  @@unique([submissionId, attributeId])
+}
