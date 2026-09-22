@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { NavLinks } from "@/components/host/nav-links";
 import { UserMenu } from "@/components/host/user-menu";
@@ -6,6 +7,13 @@ import { BrandMark } from "@/components/host/brand-mark";
 
 export default async function HostLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
+
+  // Defense-in-depth: proxy.ts already gates these routes, but this check makes the host
+  // section safe even if proxy doesn't run (e.g. an edge/host environment that doesn't yet
+  // support Next.js 16's proxy.ts convention).
+  if (!session?.user) {
+    redirect("/login");
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
