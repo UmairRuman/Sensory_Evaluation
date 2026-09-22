@@ -1,5 +1,7 @@
 [build]
-  command = "next build"
+  # Netlify's npm blocks Prisma's postinstall/preinstall scripts (install-scripts allowlist),
+  # so `prisma generate` never runs automatically — it must be an explicit build step instead.
+  command = "prisma generate && next build"
   publish = ".next"
 
 [[plugins]]
