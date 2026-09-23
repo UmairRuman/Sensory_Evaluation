@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
 import { computeSessionAggregate } from "@/lib/scoring/aggregate";
-import { generateProductNarrative } from "@/lib/scoring/narrative";
+import { generateProductVerdict } from "@/lib/scoring/narrative";
 import { SessionDashboard } from "@/components/session-dashboard/session-dashboard";
 import { ShareBlock } from "@/components/session-dashboard/share-block";
 
@@ -27,8 +27,8 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const qrDataUrl = await QRCode.toDataURL(joinUrl, { margin: 1, width: 220 });
 
   const aggregate = await computeSessionAggregate(id);
-  const narratives = Object.fromEntries(
-    aggregate.products.map((p) => [p.sessionProductId, generateProductNarrative(p, session.evaluationType)])
+  const verdicts = Object.fromEntries(
+    aggregate.products.map((p) => [p.sessionProductId, generateProductVerdict(p, session.evaluationType)])
   );
 
   const statusStyles: Record<string, string> = {
@@ -54,9 +54,17 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             {session.entity ? ` · ${session.entity}` : ""}
           </p>
         </div>
-        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[session.status]}`}>
-          {session.status}
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          <a
+            href={`/api/sessions/${session.id}/export/panelist-data`}
+            className="rounded-full border border-border px-3.5 py-1.5 text-xs font-semibold text-text-muted transition-colors hover:border-brand-primary/40 hover:bg-brand-primary-soft hover:text-brand-primary-strong"
+          >
+            ⬇ Detailed panelist data (CSV)
+          </a>
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[session.status]}`}>
+            {session.status}
+          </span>
+        </div>
       </div>
 
       {session.status !== "CLOSED" && (
@@ -67,7 +75,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         <SessionDashboard
           sessionId={session.id}
           status={session.status}
-          initialData={{ aggregate, narratives }}
+          initialData={{ aggregate, verdicts }}
         />
       </div>
     </div>

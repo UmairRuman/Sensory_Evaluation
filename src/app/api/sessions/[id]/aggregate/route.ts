@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { computeSessionAggregate } from "@/lib/scoring/aggregate";
-import { generateProductNarrative } from "@/lib/scoring/narrative";
+import { generateProductVerdict } from "@/lib/scoring/narrative";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -17,9 +17,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }
 
   const aggregate = await computeSessionAggregate(id);
-  const narratives = Object.fromEntries(
-    aggregate.products.map((p) => [p.sessionProductId, generateProductNarrative(p, dbSession.evaluationType)])
+  const verdicts = Object.fromEntries(
+    aggregate.products.map((p) => [p.sessionProductId, generateProductVerdict(p, dbSession.evaluationType)])
   );
 
-  return NextResponse.json({ aggregate, narratives });
+  return NextResponse.json({ aggregate, verdicts });
 }

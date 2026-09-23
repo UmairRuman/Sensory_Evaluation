@@ -18,12 +18,13 @@ import {
   Radar,
 } from "recharts";
 import { toast } from "sonner";
-import type { SessionAggregate } from "@/lib/scoring/aggregate";
+import type { SessionAggregate, SectionTargetScore } from "@/lib/scoring/aggregate";
+import type { ProductVerdict } from "@/lib/scoring/narrative";
 import { closeSession } from "@/lib/actions/sessions";
 
 const SAMPLE_COLORS = ["#7A1F2B", "#C8983A", "#2F7A4F", "#3B6E91", "#8B5FA6", "#B1502F"];
 
-type AggregateResponse = { aggregate: SessionAggregate; narratives: Record<string, string> };
+type AggregateResponse = { aggregate: SessionAggregate; verdicts: Record<string, ProductVerdict> };
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -45,7 +46,7 @@ export function SessionDashboard({
   const [localStatus, setLocalStatus] = useState(status);
 
   const aggregate = data?.aggregate ?? initialData.aggregate;
-  const narratives = data?.narratives ?? initialData.narratives;
+  const verdicts = data?.verdicts ?? initialData.verdicts;
 
   function handleClose() {
     startClosing(async () => {
@@ -91,7 +92,7 @@ export function SessionDashboard({
         <ProductPanel
           key={product.sessionProductId}
           product={product}
-          narrative={narratives[product.sessionProductId]}
+          verdict={verdicts[product.sessionProductId]}
         />
       ))}
     </div>
@@ -109,30 +110,31 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ProductPanel({ product, narrative }: { product: SessionAggregate["products"][number]; narrative?: string }) {
+function ProductPanel({ product, verdict }: { product: SessionAggregate["products"][number]; verdict?: ProductVerdict }) {
   const sampleCodes = product.samples.map((s) => s.sampleCode);
+  const sectionMeta = product.samples[0]?.sections ?? [];
 
-  const barData = product.samples[0]?.sections.flatMap((section) =>
-    section.attributes.map((attr) => {
-      const row: Record<string, string | number> = { attribute: attr.name };
-      for (const sample of product.samples) {
-        const match = sample.sections.find((s) => s.sectionId === section.sectionId)?.attributes.find((a) => a.attributeId === attr.attributeId);
-        row[sample.sampleCode] = match?.average ?? 0;
-      }
-      return row;
-    })
-  ) ?? [];
+  const [openSections, setOpenSections] = useState<Set<string>>(
+    () => new Set(sectionMeta[0] ? [sectionMeta[0].sectionId] : [])
+  );
 
-  const radarData = product.samples[0]?.sections.map((section) => {
-    const row: Record<string, string | number> = { section: `${section.letter}` };
+  function toggleSection(sectionId: string) {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  }
+
+  const sectionChartData = sectionMeta.map((section) => {
+    const row: Record<string, string | number> = { section: section.letter };
     for (const sample of product.samples) {
       const match = sample.sections.find((s) => s.sectionId === section.sectionId);
-      row[sample.sampleCode] = match?.average ?? 0;
+      row[sample.sampleCode] = match?.targetPct ?? 0;
     }
     return row;
-  }) ?? [];
-
-  const ranked = [...product.samples].sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+  });
 
   return (
     <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface-raised shadow-sm">
@@ -140,42 +142,35 @@ function ProductPanel({ product, narrative }: { product: SessionAggregate["produ
         <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-brand-primary-strong">
           {product.productName}
         </h2>
-        {narrative && <p className="mt-1.5 text-sm leading-relaxed text-text-muted">{narrative}</p>}
       </div>
 
-      <div className="grid gap-8 px-6 py-6 lg:grid-cols-2">
+      <div className="grid gap-8 border-b border-border px-6 py-6 lg:grid-cols-2">
         <div>
-          <SectionLabel>Per-attribute comparison</SectionLabel>
-          <div className="h-72 w-full overflow-x-auto">
-            <ResponsiveContainer width={Math.max(500, barData.length * 42)} height={280}>
-              <BarChart data={barData} margin={{ top: 4, right: 8, bottom: 60, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="attribute" tick={{ fontSize: 10, fill: "var(--text-muted)" }} angle={-40} textAnchor="end" interval={0} height={70} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
-                <YAxis domain={[0, 5]} tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--surface-raised)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 10,
-                    fontSize: 12,
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                {sampleCodes.map((code, i) => (
-                  <Bar key={code} dataKey={code} fill={SAMPLE_COLORS[i % SAMPLE_COLORS.length]} radius={[3, 3, 0, 0]} />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <SectionLabel>Parameter comparison (% rating Target)</SectionLabel>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={sectionChartData} margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+              <XAxis dataKey="section" tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={false} tickLine={false} unit="%" />
+              <Tooltip
+                contentStyle={{ background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 12 }}
+                formatter={(value) => `${Number(value).toFixed(0)}%`}
+              />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              {sampleCodes.map((code, i) => (
+                <Bar key={code} dataKey={code} fill={SAMPLE_COLORS[i % SAMPLE_COLORS.length]} radius={[3, 3, 0, 0]} />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
         </div>
 
         <div>
-          <SectionLabel>Sensory profile (section averages)</SectionLabel>
-          <ResponsiveContainer width="100%" height={280}>
-            <RadarChart data={radarData}>
+          <SectionLabel>Sensory profile (% rating Target)</SectionLabel>
+          <ResponsiveContainer width="100%" height={260}>
+            <RadarChart data={sectionChartData}>
               <PolarGrid stroke="var(--border)" />
               <PolarAngleAxis dataKey="section" tick={{ fontSize: 11, fill: "var(--text-muted)" }} />
-              <PolarRadiusAxis domain={[0, 5]} tick={{ fontSize: 10, fill: "var(--text-muted)" }} axisLine={false} />
+              <PolarRadiusAxis domain={[0, 100]} tick={{ fontSize: 10, fill: "var(--text-muted)" }} axisLine={false} />
               {sampleCodes.map((code, i) => (
                 <Radar
                   key={code}
@@ -188,63 +183,170 @@ function ProductPanel({ product, narrative }: { product: SessionAggregate["produ
               ))}
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Tooltip
-                contentStyle={{
-                  background: "var(--surface-raised)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 10,
-                  fontSize: 12,
-                }}
+                contentStyle={{ background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 12 }}
+                formatter={(value) => `${Number(value).toFixed(0)}%`}
               />
             </RadarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="overflow-x-auto border-t border-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-surface-sunken/60 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-              <th className="py-3 pl-6 pr-4">Rank</th>
-              <th className="py-3 pr-4">Sample</th>
-              <th className="py-3 pr-4">Avg. Attribute</th>
-              <th className="py-3 pr-4">Overall Liking</th>
-              <th className="py-3 pr-4">Composite</th>
-              <th className="py-3 pr-4">Deviation</th>
-              <th className="py-3 pr-6">Submissions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ranked.map((sample) => (
-              <tr
-                key={sample.sampleId}
-                className={`border-t border-border last:border-b-0 ${sample.rank === 1 ? "bg-brand-accent-soft/25" : ""}`}
-              >
-                <td className="py-3 pl-6 pr-4">
-                  {sample.rank ? (
-                    <span
-                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                        sample.rank === 1
-                          ? "bg-brand-accent text-brand-primary-strong"
-                          : "bg-surface-sunken text-text-muted"
-                      }`}
-                    >
-                      {sample.rank}
-                    </span>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="py-3 pr-4 font-medium text-text">{sample.sampleName}</td>
-                <td className="py-3 pr-4 text-text-muted">{fmt(sample.averageAttributeScore)}</td>
-                <td className="py-3 pr-4 text-text-muted">{fmt(sample.overallLiking)}</td>
-                <td className="py-3 pr-4 font-semibold text-text">{fmt(sample.composite)}</td>
-                <td className="py-3 pr-4 text-text-muted">{fmt(sample.deviation)}</td>
-                <td className="py-3 pr-6 text-text-muted">{sample.submissionCount}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {verdict && (verdict.sectionVerdicts.length > 0 || verdict.concerns.length > 0) && (
+        <div className="border-b border-border bg-brand-primary-soft/30 px-6 py-5">
+          <SectionLabel>Conclusion &amp; verdict</SectionLabel>
+          <p className="text-sm leading-relaxed text-text">{verdict.overallSummary}</p>
+          {verdict.sectionVerdicts.length > 0 && (
+            <ul className="mt-3 flex flex-col gap-1 text-sm text-text-muted">
+              {verdict.sectionVerdicts.map((sv) => (
+                <li key={sv.sectionId}>• {sv.text}</li>
+              ))}
+            </ul>
+          )}
+          {verdict.concerns.length > 0 && (
+            <div className="mt-4 rounded-[var(--radius-sm)] border border-status-warning/40 bg-status-warning/10 px-4 py-3">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-status-warning">Areas of concern</p>
+              <ul className="flex flex-col gap-1 text-sm text-text">
+                {verdict.concerns.map((c, idx) => (
+                  <li key={idx}>• {c}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+      {verdict && verdict.sectionVerdicts.length === 0 && verdict.concerns.length === 0 && (
+        <div className="border-b border-border px-6 py-5 text-sm text-text-muted">{verdict.overallSummary}</div>
+      )}
+
+      <div className="flex flex-col divide-y divide-border">
+        {sectionMeta.map((section) => (
+          <SectionAccordion
+            key={section.sectionId}
+            section={section}
+            product={product}
+            open={openSections.has(section.sectionId)}
+            onToggle={() => toggleSection(section.sectionId)}
+          />
+        ))}
       </div>
+    </div>
+  );
+}
+
+function SectionAccordion({
+  section,
+  product,
+  open,
+  onToggle,
+}: {
+  section: SectionTargetScore;
+  product: SessionAggregate["products"][number];
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const rankedSamples = product.samples
+    .map((s) => ({ sample: s, section: s.sections.find((sec) => sec.sectionId === section.sectionId) }))
+    .filter((e): e is { sample: (typeof product.samples)[number]; section: SectionTargetScore } => e.section !== undefined)
+    .sort((a, b) => (a.section.rank ?? 99) - (b.section.rank ?? 99));
+
+  const leader = rankedSamples.find((e) => e.section.rank === 1);
+  const attributeNames = section.attributes.map((a) => ({ id: a.attributeId, name: a.name }));
+
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left transition-colors hover:bg-surface-sunken/40"
+      >
+        <div className="flex items-center gap-3">
+          <span className={`transition-transform ${open ? "rotate-90" : ""} text-text-muted`}>›</span>
+          <span className="font-[family-name:var(--font-display)] font-semibold text-text">
+            {section.letter}. {section.name}
+          </span>
+        </div>
+        {leader && (
+          <span className="flex items-center gap-1.5 text-xs text-text-muted">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-accent text-[10px] font-bold text-brand-primary-strong">
+              1
+            </span>
+            {leader.sample.sampleName} ({leader.section.targetPct?.toFixed(0)}%)
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="px-6 pb-6">
+          <div className="overflow-x-auto rounded-[var(--radius-sm)] border border-border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-surface-sunken/60 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                  <th className="py-2.5 pl-4 pr-3">Rank</th>
+                  <th className="py-2.5 pr-3">Sample</th>
+                  <th className="py-2.5 pr-3">Target %</th>
+                  <th className="py-2.5 pr-3">Near-target %</th>
+                  <th className="py-2.5 pr-4">Submissions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rankedSamples.map(({ sample, section: sec }) => (
+                  <tr key={sample.sampleId} className={`border-t border-border ${sec.rank === 1 ? "bg-brand-accent-soft/25" : ""}`}>
+                    <td className="py-2.5 pl-4 pr-3">
+                      {sec.rank ? (
+                        <span
+                          className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                            sec.rank === 1 ? "bg-brand-accent text-brand-primary-strong" : "bg-surface-sunken text-text-muted"
+                          }`}
+                        >
+                          {sec.rank}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="py-2.5 pr-3 font-medium text-text">{sample.sampleName}</td>
+                    <td className="py-2.5 pr-3 font-semibold text-text">{fmtPct(sec.targetPct)}</td>
+                    <td className="py-2.5 pr-3 text-text-muted">{fmtPct(sec.nearTargetPct)}</td>
+                    <td className="py-2.5 pr-4 text-text-muted">{sample.submissionCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {attributeNames.length > 0 && (
+            <div className="mt-4 overflow-x-auto rounded-[var(--radius-sm)] border border-border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-surface-sunken/60 text-left text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                    <th className="py-2.5 pl-4 pr-3">Sub-parameter</th>
+                    {product.samples.map((s) => (
+                      <th key={s.sampleId} className="py-2.5 pr-3">
+                        {s.sampleCode}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {attributeNames.map((attr) => (
+                    <tr key={attr.id} className="border-t border-border">
+                      <td className="py-2 pl-4 pr-3 text-text">{attr.name}</td>
+                      {product.samples.map((s) => {
+                        const sec = s.sections.find((x) => x.sectionId === section.sectionId);
+                        const a = sec?.attributes.find((x) => x.attributeId === attr.id);
+                        return (
+                          <td key={s.sampleId} className="py-2 pr-3 text-text-muted">
+                            {fmtPct(a?.targetPct ?? null)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -253,6 +355,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-text-muted">{children}</p>;
 }
 
-function fmt(value: number | null) {
-  return value === null ? "—" : value.toFixed(2);
+function fmtPct(value: number | null | undefined) {
+  return value === null || value === undefined ? "—" : `${value.toFixed(0)}%`;
 }

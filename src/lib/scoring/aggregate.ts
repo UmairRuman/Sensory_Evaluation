@@ -1,30 +1,33 @@
 import { prisma } from "@/lib/prisma";
 
-export interface AttributeAverage {
+// Scoring is JAR-style (Just-About-Right): 3 is the ideal rating for every attribute, so a
+// parameter's quality is the share of panelists who rated it exactly 3 ("Target"), never a mean
+// of the raw 1-5 values. Averaging would treat a coherent "everyone said 5" the same as a
+// coherent "everyone said 3," which is backwards on this scale.
+
+export interface AttributeTargetScore {
   attributeId: string;
   name: string;
-  average: number | null;
+  targetPct: number | null; // % of respondents rating exactly 3
+  nearTargetPct: number | null; // % of respondents rating 2 or 4 (tie-break signal)
   count: number;
 }
 
-export interface SectionAverage {
+export interface SectionTargetScore {
   sectionId: string;
   letter: string;
   name: string;
-  average: number | null;
-  attributes: AttributeAverage[];
+  targetPct: number | null; // mean of this section's attribute targetPct values
+  nearTargetPct: number | null; // mean of this section's attribute nearTargetPct values
+  rank: number | null; // this sample's rank within this section, among the product's samples
+  attributes: AttributeTargetScore[];
 }
 
-export interface SampleAggregate {
+export interface SampleScore {
   sampleId: string;
   sampleName: string;
   sampleCode: string;
-  sections: SectionAverage[];
-  averageAttributeScore: number | null;
-  overallLiking: number | null;
-  composite: number | null;
-  deviation: number | null;
-  rank: number | null;
+  sections: SectionTargetScore[];
   submissionCount: number;
 }
 
@@ -32,7 +35,7 @@ export interface ProductAggregate {
   sessionProductId: string;
   productId: string;
   productName: string;
-  samples: SampleAggregate[];
+  samples: SampleScore[];
 }
 
 export interface SessionAggregate {
@@ -45,6 +48,17 @@ export interface SessionAggregate {
 function mean(values: number[]): number | null {
   if (values.length === 0) return null;
   return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+function targetStats(values: number[]): { targetPct: number | null; nearTargetPct: number | null; count: number } {
+  if (values.length === 0) return { targetPct: null, nearTargetPct: null, count: 0 };
+  const targetCount = values.filter((v) => v === 3).length;
+  const nearCount = values.filter((v) => v === 2 || v === 4).length;
+  return {
+    targetPct: (targetCount / values.length) * 100,
+    nearTargetPct: (nearCount / values.length) * 100,
+    count: values.length,
+  };
 }
 
 export async function computeSessionAggregate(sessionId: string): Promise<SessionAggregate> {
@@ -109,65 +123,52 @@ export async function computeSessionAggregate(sessionId: string): Promise<Sessio
   const submissionCountBySample = new Map(submissionCounts.map((s) => [s.sampleId, s._count._all]));
 
   const products: ProductAggregate[] = session.sessionProducts.map((sp) => {
-    const samples: SampleAggregate[] = sp.samples.map((sample) => {
+    const samples: SampleScore[] = sp.samples.map((sample) => {
       const attrValues = valuesBySample.get(sample.id) ?? new Map<string, number[]>();
 
-      const sections: SectionAverage[] = session.sessionSections.map((ss) => {
-        const attrs = (attributesBySection.get(ss.sectionId) ?? []).filter(
-          (sa) => sa.attribute.kind !== "OVERALL_HEDONIC"
-        );
-        const attributeAverages: AttributeAverage[] = attrs.map((sa) => {
+      const sections: SectionTargetScore[] = session.sessionSections.map((ss) => {
+        const attrs = attributesBySection.get(ss.sectionId) ?? [];
+        const attributeScores: AttributeTargetScore[] = attrs.map((sa) => {
           const values = attrValues.get(sa.attributeId) ?? [];
-          return { attributeId: sa.attributeId, name: sa.attribute.name, average: mean(values), count: values.length };
+          const stats = targetStats(values);
+          return { attributeId: sa.attributeId, name: sa.attribute.name, ...stats };
         });
-        const sectionMeans = attributeAverages.map((a) => a.average).filter((v): v is number => v !== null);
+        const sectionTargetPcts = attributeScores.map((a) => a.targetPct).filter((v): v is number => v !== null);
+        const sectionNearPcts = attributeScores.map((a) => a.nearTargetPct).filter((v): v is number => v !== null);
         return {
           sectionId: ss.sectionId,
           letter: ss.section.letter,
           name: ss.section.name,
-          average: mean(sectionMeans),
-          attributes: attributeAverages,
+          targetPct: mean(sectionTargetPcts),
+          nearTargetPct: mean(sectionNearPcts),
+          rank: null,
+          attributes: attributeScores,
         };
       });
-
-      const allStandardMeans = sections.flatMap((s) => s.attributes.map((a) => a.average)).filter((v): v is number => v !== null);
-      const averageAttributeScore = mean(allStandardMeans);
-
-      const hedonicAttr = session.sessionAttributes.find((sa) => sa.attribute.kind === "OVERALL_HEDONIC");
-      const overallLikingValues = hedonicAttr ? (attrValues.get(hedonicAttr.attributeId) ?? []) : [];
-      const overallLiking = mean(overallLikingValues);
-
-      const composite =
-        averageAttributeScore !== null && overallLiking !== null ? (averageAttributeScore + overallLiking) / 2 : null;
-      // Deviation from Target = |Composite - 3|. This scale is JAR-style (Just-About-Right): 3 is
-      // the ideal/target rating for every attribute, including Overall Liking — 1 and 5 are both
-      // "unacceptable" in opposite directions. So deviation, not the raw composite, measures quality:
-      // lower deviation is better, and rank is driven by deviation, never by composite magnitude alone.
-      const deviation = composite !== null ? Math.abs(composite - 3) : null;
 
       return {
         sampleId: sample.id,
         sampleName: sample.sampleName,
         sampleCode: sample.sampleCode,
         sections,
-        averageAttributeScore,
-        overallLiking,
-        composite,
-        deviation,
-        rank: null,
         submissionCount: submissionCountBySample.get(sample.id) ?? 0,
       };
     });
 
-    // Rank 1 = closest to target (lowest deviation) — NOT the highest composite score, since 3 is
-    // the ideal rating on this JAR scale and both 1 and 5 represent unacceptable extremes.
-    const ranked = [...samples]
-      .filter((s) => s.deviation !== null)
-      .sort((a, b) => a.deviation! - b.deviation!);
-    ranked.forEach((s, idx) => {
-      const target = samples.find((x) => x.sampleId === s.sampleId);
-      if (target) target.rank = idx + 1;
-    });
+    // Rank is computed per section (parent parameter), never as a single overall composite —
+    // rank 1 = highest targetPct within that section among this product's samples, tie-broken
+    // by nearTargetPct (more 2s/4s beats more 1s/5s at the same target-% level).
+    for (const section of session.sessionSections) {
+      const entries = samples
+        .map((s) => s.sections.find((sec) => sec.sectionId === section.sectionId))
+        .filter((sec): sec is SectionTargetScore => sec !== undefined && sec.targetPct !== null);
+      const ranked = [...entries].sort(
+        (a, b) => b.targetPct! - a.targetPct! || (b.nearTargetPct ?? 0) - (a.nearTargetPct ?? 0)
+      );
+      ranked.forEach((sec, idx) => {
+        sec.rank = idx + 1;
+      });
+    }
 
     return {
       sessionProductId: sp.id,
