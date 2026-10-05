@@ -16,6 +16,7 @@ interface SubmissionRow {
   id: string;
   panelistName: string;
   categoryTitle: string;
+  productId: string;
   productName: string;
   sessionId: string;
   sessionName: string;
@@ -75,8 +76,8 @@ export function EvaluationRecordsClient({
   }, [submissions]);
   const distinctProducts = useMemo(() => {
     const map = new Map<string, string>();
-    submissions.forEach((s) => map.set(s.productName, s.productName));
-    return [...map.keys()];
+    submissions.forEach((s) => map.set(s.productId, s.productName));
+    return [...map.entries()];
   }, [submissions]);
 
   return (
@@ -209,6 +210,15 @@ export function EvaluationRecordsClient({
                 className="rounded-full border border-status-danger/40 px-3 py-1.5 text-xs font-semibold text-status-danger hover:bg-status-danger/10"
               >
                 Delete session: {name}
+              </button>
+            ))}
+            {distinctProducts.map(([id, name]) => (
+              <button
+                key={id}
+                onClick={() => setPendingScope({ scope: { kind: "product", productId: id }, label: `all evaluations of SKU "${name}" (the SKU itself stays in master data)` })}
+                className="rounded-full border border-status-danger/40 px-3 py-1.5 text-xs font-semibold text-status-danger hover:bg-status-danger/10"
+              >
+                Delete all evaluations of: {name}
               </button>
             ))}
           </div>

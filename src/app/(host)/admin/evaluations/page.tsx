@@ -86,6 +86,7 @@ export default async function EvaluationRecordsPage({
           id: s.id,
           panelistName: s.panelistVisit.name,
           categoryTitle: s.sample.sessionProduct.session.category.title,
+          productId: s.sample.sessionProduct.productId,
           productName: s.sample.sessionProduct.product.name,
           sessionId: s.sample.sessionProduct.sessionId,
           sessionName: s.sample.sessionProduct.session.name,
