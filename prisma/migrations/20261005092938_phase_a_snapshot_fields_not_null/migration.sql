@@ -1,0 +1,10 @@
+-- AlterTable
+ALTER TABLE "SessionAttribute" ALTER COLUMN "highLabel" SET NOT NULL,
+ALTER COLUMN "lowLabel" SET NOT NULL,
+ALTER COLUMN "midLabel" SET NOT NULL,
+ALTER COLUMN "name" SET NOT NULL;
+
+-- AlterTable
+ALTER TABLE "SessionSection" ALTER COLUMN "letter" SET NOT NULL,
+ALTER COLUMN "name" SET NOT NULL;
+

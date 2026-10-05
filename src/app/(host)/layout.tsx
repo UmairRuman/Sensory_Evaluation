@@ -8,9 +8,6 @@ import { BrandMark } from "@/components/host/brand-mark";
 export default async function HostLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
 
-  // Defense-in-depth: proxy.ts already gates these routes, but this check makes the host
-  // section safe even if proxy doesn't run (e.g. an edge/host environment that doesn't yet
-  // support Next.js 16's proxy.ts convention).
   if (!session?.user) {
     redirect("/login");
   }
@@ -32,7 +29,7 @@ export default async function HostLayout({ children }: { children: React.ReactNo
           </Link>
 
           <div className="flex items-center gap-3 sm:gap-6">
-            <NavLinks />
+            <NavLinks isAdmin={session.user.role === "ADMIN"} />
             <span className="hidden h-6 w-px bg-border sm:block" />
             <UserMenu name={session?.user?.name} email={session?.user?.email} />
           </div>

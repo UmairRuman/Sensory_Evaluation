@@ -19,11 +19,24 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const sessionAttributes = await prisma.sessionAttribute.findMany({
+  // Ordering and display text come from the session's own locked snapshot (SessionSection /
+  // SessionAttribute), not the live masterfile, so an export always matches what panelists
+  // actually saw and scored for this session, even if the masterfile changed since.
+  const sessionSections = await prisma.sessionSection.findMany({
     where: { sessionId: id, enabled: true },
-    include: { attribute: { include: { section: true } } },
-    orderBy: [{ attribute: { section: { letter: "asc" } } }, { attribute: { sortOrder: "asc" } }],
+    orderBy: { sortOrder: "asc" },
   });
+  const sectionOrderById = new Map(sessionSections.map((ss, idx) => [ss.sectionId, idx]));
+
+  const sessionAttributesRaw = await prisma.sessionAttribute.findMany({
+    where: { sessionId: id, enabled: true },
+    include: { attribute: { select: { sectionId: true } } },
+    orderBy: { sortOrder: "asc" },
+  });
+  const sectionLetterById = new Map(sessionSections.map((ss) => [ss.sectionId, ss.letter]));
+  const sessionAttributes = [...sessionAttributesRaw].sort(
+    (a, b) => (sectionOrderById.get(a.attribute.sectionId) ?? 0) - (sectionOrderById.get(b.attribute.sectionId) ?? 0)
+  );
 
   const submissions = await prisma.submission.findMany({
     where: { excluded: false, sample: { sessionProduct: { sessionId: id } } },
@@ -44,7 +57,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     "Sample Name",
     "Sample Code",
     "Submitted At",
-    ...sessionAttributes.map((sa) => `${sa.attribute.section.letter}. ${sa.attribute.name}`),
+    ...sessionAttributes.map((sa) => `${sectionLetterById.get(sa.attribute.sectionId) ?? "?"}. ${sa.name}`),
     "Comment",
   ];
 

@@ -75,12 +75,11 @@ export async function computeSessionAggregate(sessionId: string): Promise<Sessio
       sessionSections: {
         where: { enabled: true },
         orderBy: { sortOrder: "asc" },
-        include: { section: true },
       },
       sessionAttributes: {
         where: { enabled: true },
         orderBy: { sortOrder: "asc" },
-        include: { attribute: true },
+        include: { attribute: { select: { sectionId: true } } }, // structural grouping key only — display text comes from the snapshot fields below
       },
     },
   });
@@ -131,14 +130,14 @@ export async function computeSessionAggregate(sessionId: string): Promise<Sessio
         const attributeScores: AttributeTargetScore[] = attrs.map((sa) => {
           const values = attrValues.get(sa.attributeId) ?? [];
           const stats = targetStats(values);
-          return { attributeId: sa.attributeId, name: sa.attribute.name, ...stats };
+          return { attributeId: sa.attributeId, name: sa.name, ...stats };
         });
         const sectionTargetPcts = attributeScores.map((a) => a.targetPct).filter((v): v is number => v !== null);
         const sectionNearPcts = attributeScores.map((a) => a.nearTargetPct).filter((v): v is number => v !== null);
         return {
           sectionId: ss.sectionId,
-          letter: ss.section.letter,
-          name: ss.section.name,
+          letter: ss.letter,
+          name: ss.name,
           targetPct: mean(sectionTargetPcts),
           nearTargetPct: mean(sectionNearPcts),
           rank: null,

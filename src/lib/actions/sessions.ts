@@ -30,9 +30,19 @@ export async function createAndPublishSession(input: CreateSessionInput): Promis
   const productIds = data.products.map((p) => p.productId);
   const disabledSet = new Set(data.disabledAttributeIds);
 
-  const sectionRows: { sectionId: string; enabled: boolean; sortOrder: number }[] = [];
-  const attributeRows: { attributeId: string; enabled: boolean; sortOrder: number }[] = [];
+  const sectionRows: { sectionId: string; letter: string; name: string; enabled: boolean; sortOrder: number }[] = [];
+  const attributeRows: {
+    attributeId: string;
+    name: string;
+    lowLabel: string;
+    midLabel: string;
+    highLabel: string;
+    enabled: boolean;
+    sortOrder: number;
+  }[] = [];
 
+  // Snapshot display text (name/letter/labels) at publish time, not just which sections/attributes
+  // apply — this is what makes a later masterfile rename never relabel an already-published session.
   for (const section of category.sections) {
     let sectionApplies = false;
     for (const attribute of section.attributes) {
@@ -41,12 +51,22 @@ export async function createAndPublishSession(input: CreateSessionInput): Promis
       sectionApplies = true;
       attributeRows.push({
         attributeId: attribute.id,
+        name: attribute.name,
+        lowLabel: attribute.lowLabel,
+        midLabel: attribute.midLabel,
+        highLabel: attribute.highLabel,
         enabled: !disabledSet.has(attribute.id),
         sortOrder: attribute.sortOrder,
       });
     }
     if (sectionApplies) {
-      sectionRows.push({ sectionId: section.id, enabled: true, sortOrder: section.sortOrder });
+      sectionRows.push({
+        sectionId: section.id,
+        letter: section.letter,
+        name: section.name,
+        enabled: true,
+        sortOrder: section.sortOrder,
+      });
     }
   }
 

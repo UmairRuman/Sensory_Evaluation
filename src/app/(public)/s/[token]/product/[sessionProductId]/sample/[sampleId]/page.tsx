@@ -28,17 +28,11 @@ export default async function ScoringPage({
       sessionSections: {
         where: { enabled: true },
         orderBy: { sortOrder: "asc" },
-        include: {
-          section: {
-            include: {
-              attributes: { where: { isActive: true }, orderBy: { sortOrder: "asc" } },
-            },
-          },
-        },
       },
       sessionAttributes: {
         where: { enabled: true },
-        include: { attribute: true },
+        orderBy: { sortOrder: "asc" },
+        include: { attribute: { select: { sectionId: true, kind: true } } }, // structural keys only — all display text below is the frozen snapshot
       },
     },
   });
@@ -74,14 +68,28 @@ export default async function ScoringPage({
     redirect(nextHref);
   }
 
-  const enabledAttributeIds = new Set(session.sessionAttributes.map((sa) => sa.attributeId));
+  // Built entirely from the session's own locked snapshot (SessionSection/SessionAttribute), never
+  // from the live Section/Attribute masterfile — so a panelist resuming an in-process evaluation,
+  // or scoring any sample after the host later edits the masterfile, always sees the exact form
+  // that was locked in at publish time.
+  const attributesBySection = new Map<string, typeof session.sessionAttributes>();
+  for (const sa of session.sessionAttributes) {
+    const list = attributesBySection.get(sa.attribute.sectionId) ?? [];
+    list.push(sa);
+    attributesBySection.set(sa.attribute.sectionId, list);
+  }
   const sections = session.sessionSections.map((ss) => ({
-    id: ss.section.id,
-    letter: ss.section.letter,
-    name: ss.section.name,
-    attributes: ss.section.attributes
-      .filter((a) => enabledAttributeIds.has(a.id))
-      .map((a) => ({ id: a.id, name: a.name, kind: a.kind, lowLabel: a.lowLabel, midLabel: a.midLabel, highLabel: a.highLabel })),
+    id: ss.sectionId,
+    letter: ss.letter,
+    name: ss.name,
+    attributes: (attributesBySection.get(ss.sectionId) ?? []).map((sa) => ({
+      id: sa.attributeId,
+      name: sa.name,
+      kind: sa.attribute.kind,
+      lowLabel: sa.lowLabel,
+      midLabel: sa.midLabel,
+      highLabel: sa.highLabel,
+    })),
   }));
 
   const progress = flat.findIndex((f) => f.sampleId === sampleId) + 1;
