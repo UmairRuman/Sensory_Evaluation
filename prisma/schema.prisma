@@ -145,6 +145,7 @@ model Session {
   createdAt      DateTime       @default(now())
   publishedAt    DateTime?
   closedAt       DateTime?
+  isTest         Boolean        @default(false) // trial/demo sessions, excludable from reporting and easy to bulk-delete
 
   sessionProducts   SessionProduct[]
   sessionSections   SessionSection[]

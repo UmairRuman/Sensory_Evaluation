@@ -21,6 +21,7 @@ export const createSessionSchema = z.object({
   entity: z.string().optional(),
   products: z.array(sessionProductInputSchema).min(1, "Select at least one product"),
   disabledAttributeIds: z.array(z.string()).default([]),
+  isTest: z.boolean().default(false),
 });
 
 export type CreateSessionInput = z.infer<typeof createSessionSchema>;

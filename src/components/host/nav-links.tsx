@@ -7,7 +7,10 @@ const BASE_LINKS = [
   { href: "/dashboard", label: "Home" },
   { href: "/sessions", label: "Sessions" },
 ];
-const ADMIN_LINKS = [{ href: "/admin/products", label: "Manage Products" }];
+const ADMIN_LINKS = [
+  { href: "/admin/products", label: "Manage Products" },
+  { href: "/admin/evaluations", label: "Evaluation Records" },
+];
 
 export function NavLinks({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();

@@ -52,6 +52,7 @@ export function SessionWizard({ categories }: { categories: Category[] }) {
   const [evaluationType, setEvaluationType] = useState<EvalType>("COMPETITIVE_BENCHMARK");
   const [region, setRegion] = useState("");
   const [entity, setEntity] = useState("");
+  const [isTest, setIsTest] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -163,6 +164,7 @@ export function SessionWizard({ categories }: { categories: Category[] }) {
           })),
         })),
         disabledAttributeIds: Array.from(disabledAttributeIds),
+        isTest,
       });
       // On success this throws a redirect and never returns; on failure it resolves with { error }.
       if (result && "error" in result) {
@@ -337,6 +339,11 @@ export function SessionWizard({ categories }: { categories: Category[] }) {
               </select>
             </Field>
           </div>
+
+          <label className="flex items-center gap-2.5 text-sm text-text-muted">
+            <input type="checkbox" checked={isTest} onChange={(e) => setIsTest(e.target.checked)} />
+            Mark as test session (easy to bulk-delete later; can be excluded from reporting)
+          </label>
 
           <div>
             <h3 className="mb-2 font-[family-name:var(--font-display)] text-sm uppercase tracking-wide text-text-muted">

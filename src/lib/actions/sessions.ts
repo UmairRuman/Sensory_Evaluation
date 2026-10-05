@@ -95,6 +95,7 @@ export async function createAndPublishSession(input: CreateSessionInput): Promis
             joinCode,
             createdById: authSession.user.id,
             publishedAt: new Date(),
+            isTest: data.isTest,
           },
         });
 
