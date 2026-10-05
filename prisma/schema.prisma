@@ -165,7 +165,6 @@ model SessionProduct {
   sortOrder Int     @default(0)
 
   samples Sample[]
-  remarkSummaries RemarkSummary[]
 
   @@unique([sessionId, productId])
 }
@@ -199,8 +198,7 @@ model SessionSection {
   enabled   Boolean @default(true)
   sortOrder Int     @default(0)
 
-  remarks         Remark[]
-  remarkSummaries RemarkSummary[]
+  remarks Remark[]
 
   @@unique([sessionId, sectionId])
 }
@@ -277,28 +275,4 @@ model Remark {
   createdAt       DateTime       @default(now())
 
   @@unique([submissionId, sessionSectionId])
-}
-
-enum RemarkTone {
-  POSITIVE
-  MIXED
-  NEGATIVE
-}
-
-// AI-generated (Gemini) summary of a product's remarks, cached by sourceDataHash so a new
-// remark or a deletion automatically invalidates the cache without scattered manual busting.
-// sessionSectionId null = the overall per-SKU summary woven into the dashboard verdict.
-model RemarkSummary {
-  id               String          @id @default(cuid())
-  sessionProductId String
-  sessionProduct   SessionProduct  @relation(fields: [sessionProductId], references: [id])
-  sessionSectionId String?
-  sessionSection   SessionSection? @relation(fields: [sessionSectionId], references: [id])
-  summaryText      String
-  tone             RemarkTone?
-  editedFlag       Boolean         @default(false)
-  generatedAt      DateTime        @default(now())
-  sourceDataHash   String
-
-  @@unique([sessionProductId, sessionSectionId])
 }

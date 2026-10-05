@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 
 export interface RemarkEntry {
@@ -15,21 +14,10 @@ export interface SectionRemarks {
   letter: string;
   name: string;
   remarks: RemarkEntry[];
-  sourceDataHash: string;
 }
 
 export interface ProductRemarks {
   sections: SectionRemarks[];
-  overall: RemarkEntry[];
-  overallHash: string;
-}
-
-function hashRemarks(rows: { id: string; text: string }[]): string {
-  const input = rows
-    .map((r) => `${r.id}:${r.text}`)
-    .sort()
-    .join("|");
-  return crypto.createHash("sha256").update(input).digest("hex");
 }
 
 export async function fetchProductRemarks(sessionProductId: string): Promise<ProductRemarks> {
@@ -77,12 +65,8 @@ export async function fetchProductRemarks(sessionProductId: string): Promise<Pro
       letter: ss.letter,
       name: ss.name,
       remarks,
-      sourceDataHash: hashRemarks(rows),
     };
   });
 
-  const overall = sections.flatMap((s) => s.remarks);
-  const overallHash = hashRemarks(remarkRows);
-
-  return { sections, overall, overallHash };
+  return { sections };
 }

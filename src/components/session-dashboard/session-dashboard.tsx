@@ -21,15 +21,9 @@ import { toast } from "sonner";
 import type { SessionAggregate, SectionTargetScore } from "@/lib/scoring/aggregate";
 import type { ProductVerdict } from "@/lib/scoring/narrative";
 import { closeSession } from "@/lib/actions/sessions";
-import {
-  getProductRemarks,
-  generateSectionSummary,
-  generateOverallSummary,
-  updateSummaryText,
-} from "@/lib/actions/remarks";
+import { getProductRemarks } from "@/lib/actions/remarks";
 
 type ProductRemarksData = Awaited<ReturnType<typeof getProductRemarks>>;
-type SummaryRow = NonNullable<ProductRemarksData["overallSummary"]>;
 
 const SAMPLE_COLORS = ["#7A1F2B", "#C8983A", "#2F7A4F", "#3B6E91", "#8B5FA6", "#B1502F"];
 
@@ -128,29 +122,21 @@ function ProductPanel({ product, verdict }: { product: SessionAggregate["product
   );
 
   const [remarksData, setRemarksData] = useState<ProductRemarksData | null>(null);
-  const [, startLoadingRemarks] = useTransition();
 
   useEffect(() => {
-    startLoadingRemarks(async () => {
-      try {
-        const data = await getProductRemarks(product.sessionProductId);
-        setRemarksData(data);
-      } catch {
+    let cancelled = false;
+    getProductRemarks(product.sessionProductId)
+      .then((data) => {
+        if (!cancelled) setRemarksData(data);
+      })
+      .catch(() => {
         // Remarks are an enhancement, not core dashboard functionality — fail silently and
-        // leave the raw-remarks/AI-summary sections simply unrendered for this product.
-      }
-    });
+        // leave the raw-remarks section simply unrendered for this product.
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [product.sessionProductId]);
-
-  function refreshRemarks() {
-    startLoadingRemarks(async () => {
-      try {
-        setRemarksData(await getProductRemarks(product.sessionProductId));
-      } catch {
-        // see above
-      }
-    });
-  }
 
   function toggleSection(sectionId: string) {
     setOpenSections((prev) => {
@@ -252,26 +238,6 @@ function ProductPanel({ product, verdict }: { product: SessionAggregate["product
         <div className="border-b border-border px-6 py-5 text-sm text-text-muted">{verdict.overallSummary}</div>
       )}
 
-      {remarksData && (remarksData.overall.length > 0 || remarksData.overallSummary) && (
-        <div className="border-b border-border px-6 py-5">
-          <SectionLabel>Panelist remarks — overall AI summary</SectionLabel>
-          <RemarksSummaryBox
-            summary={remarksData.overallSummary}
-            stale={remarksData.overallStale}
-            hasRemarks={remarksData.overall.length > 0}
-            onGenerate={async () => {
-              await generateOverallSummary(product.sessionProductId);
-              refreshRemarks();
-            }}
-            onSave={async (text) => {
-              if (!remarksData.overallSummary) return;
-              await updateSummaryText(remarksData.overallSummary.id, text);
-              refreshRemarks();
-            }}
-          />
-        </div>
-      )}
-
       <div className="flex flex-col divide-y divide-border">
         {sectionMeta.map((section) => (
           <SectionAccordion
@@ -281,105 +247,8 @@ function ProductPanel({ product, verdict }: { product: SessionAggregate["product
             open={openSections.has(section.sectionId)}
             onToggle={() => toggleSection(section.sectionId)}
             remarks={remarksData?.sections.find((s) => s.sectionId === section.sectionId) ?? null}
-            onRemarksChange={refreshRemarks}
           />
         ))}
-      </div>
-    </div>
-  );
-}
-
-function RemarksSummaryBox({
-  summary,
-  stale,
-  hasRemarks,
-  onGenerate,
-  onSave,
-}: {
-  summary: SummaryRow | null;
-  stale: boolean;
-  hasRemarks: boolean;
-  onGenerate: () => Promise<void>;
-  onSave: (text: string) => Promise<void>;
-}) {
-  const [generating, startGenerating] = useTransition();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(summary?.summaryText ?? "");
-  const [saving, startSaving] = useTransition();
-  const [failedOnce, setFailedOnce] = useState(false);
-
-  function handleGenerate() {
-    setFailedOnce(false);
-    startGenerating(async () => {
-      try {
-        await onGenerate();
-      } catch {
-        setFailedOnce(true);
-      }
-    });
-  }
-
-  function handleSave() {
-    startSaving(async () => {
-      await onSave(draft);
-      setEditing(false);
-    });
-  }
-
-  if (!hasRemarks) {
-    return <p className="text-sm text-text-muted">No panelist remarks yet.</p>;
-  }
-
-  return (
-    <div className="flex flex-col gap-2">
-      {summary && !editing && (
-        <p className="text-sm leading-relaxed text-text">
-          {summary.summaryText}
-          {summary.editedFlag && <span className="ml-2 text-[10px] uppercase tracking-wide text-text-muted">(edited)</span>}
-        </p>
-      )}
-      {editing && (
-        <textarea
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          rows={3}
-          className="w-full rounded-[var(--radius-sm)] border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-accent/40"
-        />
-      )}
-      {!summary && !generating && (
-        <p className="text-sm text-text-muted">
-          {failedOnce ? "AI summary unavailable right now — try again later." : "No AI summary yet."}
-        </p>
-      )}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="self-start rounded-full border border-brand-primary/40 px-3.5 py-1.5 text-xs font-semibold text-brand-primary-strong transition-colors hover:bg-brand-primary-soft disabled:opacity-50"
-        >
-          {generating ? "Generating…" : summary ? (stale ? "Refresh summary (new remarks)" : "Regenerate summary") : "Generate summary"}
-        </button>
-        {summary && !editing && (
-          <button
-            onClick={() => {
-              setDraft(summary.summaryText);
-              setEditing(true);
-            }}
-            className="text-xs font-semibold text-text-muted hover:text-text"
-          >
-            Edit
-          </button>
-        )}
-        {editing && (
-          <>
-            <button onClick={handleSave} disabled={saving} className="text-xs font-semibold text-brand-primary-strong">
-              {saving ? "Saving…" : "Save"}
-            </button>
-            <button onClick={() => setEditing(false)} className="text-xs font-semibold text-text-muted">
-              Cancel
-            </button>
-          </>
-        )}
       </div>
     </div>
   );
@@ -391,14 +260,12 @@ function SectionAccordion({
   open,
   onToggle,
   remarks,
-  onRemarksChange,
 }: {
   section: SectionTargetScore;
   product: SessionAggregate["products"][number];
   open: boolean;
   onToggle: () => void;
   remarks: ProductRemarksData["sections"][number] | null;
-  onRemarksChange: () => void;
 }) {
   const rankedSamples = product.samples
     .map((s) => ({ sample: s, section: s.sections.find((sec) => sec.sectionId === section.sectionId) }))
@@ -502,35 +369,19 @@ function SectionAccordion({
             </div>
           )}
 
-          {remarks && (remarks.remarks.length > 0 || remarks.summary) && (
+          {remarks && remarks.remarks.length > 0 && (
             <div className="mt-4 rounded-[var(--radius-sm)] border border-border bg-surface-sunken/30 p-4">
               <SectionLabel>Panelist remarks</SectionLabel>
-              {remarks.remarks.length > 0 && (
-                <ul className="mb-4 flex flex-col gap-1.5 text-sm text-text">
-                  {remarks.remarks.map((r, idx) => (
-                    <li key={idx} className="rounded-[var(--radius-sm)] bg-surface px-3 py-1.5" dir="auto">
-                      <span className="mr-1.5 text-[11px] font-semibold text-text-muted">
-                        {r.anonymousCode} · {r.sampleCode}
-                      </span>
-                      {r.text}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <RemarksSummaryBox
-                summary={remarks.summary}
-                stale={remarks.stale}
-                hasRemarks={remarks.remarks.length > 0}
-                onGenerate={async () => {
-                  await generateSectionSummary(product.sessionProductId, remarks.sessionSectionId);
-                  onRemarksChange();
-                }}
-                onSave={async (text) => {
-                  if (!remarks.summary) return;
-                  await updateSummaryText(remarks.summary.id, text);
-                  onRemarksChange();
-                }}
-              />
+              <ul className="flex flex-col gap-1.5 text-sm text-text">
+                {remarks.remarks.map((r, idx) => (
+                  <li key={idx} className="rounded-[var(--radius-sm)] bg-surface px-3 py-1.5" dir="auto">
+                    <span className="mr-1.5 text-[11px] font-semibold text-text-muted">
+                      {r.anonymousCode} · {r.sampleCode}
+                    </span>
+                    {r.text}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

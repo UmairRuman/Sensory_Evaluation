@@ -93,9 +93,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const remarksSheet = workbook.addWorksheet("Remarks");
   remarksSheet.addRow(["Product", "Section", "Panelist Code", "Sample", "Remark"]);
 
-  const summarySheet = workbook.addWorksheet("Remarks Summary");
-  summarySheet.addRow(["Product", "Section", "Summary", "Tone", "Edited", "Generated At"]);
-
   for (const sp of sessionProducts) {
     const { sections } = await fetchProductRemarks(sp.id);
 
@@ -111,22 +108,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         applyRemarkTextAlignment(row.getCell(5), r.text);
       }
     }
-
-    const summaries = await prisma.remarkSummary.findMany({ where: { sessionProductId: sp.id } });
-    const overallSummary = summaries.find((s) => s.sessionSectionId === null);
-    if (overallSummary) {
-      addSummaryRow(summarySheet, sp.product.name, "Overall", overallSummary);
-    }
-    for (const section of sections) {
-      const sectionSummary = summaries.find((s) => s.sessionSectionId === section.sessionSectionId);
-      if (sectionSummary) {
-        addSummaryRow(summarySheet, sp.product.name, `${section.letter}. ${section.name}`, sectionSummary);
-      }
-    }
   }
 
   remarksSheet.columns = [{ width: 24 }, { width: 22 }, { width: 14 }, { width: 18 }, { width: 60 }];
-  summarySheet.columns = [{ width: 24 }, { width: 22 }, { width: 60 }, { width: 12 }, { width: 10 }, { width: 22 }];
 
   const buffer = await workbook.xlsx.writeBuffer();
   const safeName = dbSession.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
@@ -143,21 +127,4 @@ function applyRemarkTextAlignment(cell: ExcelJS.Cell, text: string) {
   cell.alignment = isUrduText(text)
     ? { horizontal: "right", wrapText: true, readingOrder: "rtl" }
     : { wrapText: true };
-}
-
-function addSummaryRow(
-  sheet: ExcelJS.Worksheet,
-  productName: string,
-  sectionLabel: string,
-  summary: { summaryText: string; tone: string | null; editedFlag: boolean; generatedAt: Date }
-) {
-  const row = sheet.addRow([
-    productName,
-    sectionLabel,
-    summary.summaryText,
-    summary.tone ?? "",
-    summary.editedFlag ? "Yes" : "No",
-    summary.generatedAt.toISOString(),
-  ]);
-  applyRemarkTextAlignment(row.getCell(3), summary.summaryText);
 }
