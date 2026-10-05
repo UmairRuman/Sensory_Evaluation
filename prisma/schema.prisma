@@ -165,6 +165,7 @@ model SessionProduct {
   sortOrder Int     @default(0)
 
   samples Sample[]
+  remarkSummaries RemarkSummary[]
 
   @@unique([sessionId, productId])
 }
@@ -197,6 +198,9 @@ model SessionSection {
   name      String
   enabled   Boolean @default(true)
   sortOrder Int     @default(0)
+
+  remarks         Remark[]
+  remarkSummaries RemarkSummary[]
 
   @@unique([sessionId, sectionId])
 }
@@ -243,7 +247,8 @@ model Submission {
   submittedAt     DateTime      @default(now())
   deviceRef       String?
 
-  scores Score[]
+  scores  Score[]
+  remarks Remark[]
 
   @@unique([panelistVisitId, sampleId])
 }
@@ -257,4 +262,43 @@ model Score {
   value        Int // 1..5
 
   @@unique([submissionId, attributeId])
+}
+
+// One optional written remark per parent parameter, per sample, per panelist — tied to the
+// session's locked SessionSection snapshot (not the live Section) so later renames/reorders in
+// Change 3 never move or lose an existing remark, per CR req 5.7.
+model Remark {
+  id              String         @id @default(cuid())
+  submissionId    String
+  submission      Submission     @relation(fields: [submissionId], references: [id])
+  sessionSectionId String
+  sessionSection  SessionSection @relation(fields: [sessionSectionId], references: [id])
+  text            String // UTF-8, up to 500 chars (enforced at the application layer)
+  createdAt       DateTime       @default(now())
+
+  @@unique([submissionId, sessionSectionId])
+}
+
+enum RemarkTone {
+  POSITIVE
+  MIXED
+  NEGATIVE
+}
+
+// AI-generated (Gemini) summary of a product's remarks, cached by sourceDataHash so a new
+// remark or a deletion automatically invalidates the cache without scattered manual busting.
+// sessionSectionId null = the overall per-SKU summary woven into the dashboard verdict.
+model RemarkSummary {
+  id               String          @id @default(cuid())
+  sessionProductId String
+  sessionProduct   SessionProduct  @relation(fields: [sessionProductId], references: [id])
+  sessionSectionId String?
+  sessionSection   SessionSection? @relation(fields: [sessionSectionId], references: [id])
+  summaryText      String
+  tone             RemarkTone?
+  editedFlag       Boolean         @default(false)
+  generatedAt      DateTime        @default(now())
+  sourceDataHash   String
+
+  @@unique([sessionProductId, sessionSectionId])
 }

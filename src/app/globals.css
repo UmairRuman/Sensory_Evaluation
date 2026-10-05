@@ -154,3 +154,10 @@ body {
 .hero-surface {
   background-image: var(--gradient-hero-sheen), var(--gradient-hero);
 }
+
+/* Applied conditionally to rendered Urdu-script remarks — never as a blanket font swap, since
+   Nastaliq calligraphic fonts render Latin text poorly. */
+.urdu-text {
+  font-family: var(--font-urdu), var(--font-ui);
+  line-height: 2.1;
+}

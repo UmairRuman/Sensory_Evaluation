@@ -3,6 +3,9 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { isUrduText } from "@/lib/text/urdu";
+
+const REMARK_MAX_LENGTH = 500;
 
 interface AttributeDef {
   id: string;
@@ -14,6 +17,7 @@ interface AttributeDef {
 }
 interface SectionDef {
   id: string;
+  sessionSectionId: string;
   letter: string;
   name: string;
   attributes: AttributeDef[];
@@ -48,6 +52,7 @@ export function ScoringForm({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
   const [scores, setScores] = useState<Record<string, number>>({});
+  const [remarks, setRemarks] = useState<Record<string, string>>({});
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +83,7 @@ export function ScoringForm({
       const res = await fetch(`/api/s/${token}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ panelistVisitId, sampleId, scores, comment: comment || undefined }),
+        body: JSON.stringify({ panelistVisitId, sampleId, scores, remarks, comment: comment || undefined }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -158,6 +163,33 @@ export function ScoringForm({
             </div>
           </div>
         ))}
+
+        {section && (
+          <div className="rounded-[var(--radius-md)] border border-border bg-surface-raised p-4 shadow-xs">
+            <div className="mb-1.5 flex items-baseline justify-between">
+              <label htmlFor={`remark-${section.sessionSectionId}`} className="text-sm font-semibold text-text">
+                Remarks (optional)
+              </label>
+              <span className="text-[11px] text-text-muted">
+                {(remarks[section.sessionSectionId] ?? "").length}/{REMARK_MAX_LENGTH}
+              </span>
+            </div>
+            <textarea
+              id={`remark-${section.sessionSectionId}`}
+              value={remarks[section.sessionSectionId] ?? ""}
+              onChange={(e) =>
+                setRemarks((prev) => ({ ...prev, [section.sessionSectionId]: e.target.value.slice(0, REMARK_MAX_LENGTH) }))
+              }
+              dir="auto"
+              rows={3}
+              maxLength={REMARK_MAX_LENGTH}
+              className={`w-full rounded-[var(--radius-sm)] border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors focus:border-brand-primary focus:ring-2 focus:ring-brand-accent/40 ${
+                isUrduText(remarks[section.sessionSectionId] ?? "") ? "urdu-text" : ""
+              }`}
+              placeholder={`Anything to note about ${section.name}? (English or Urdu)`}
+            />
+          </div>
+        )}
 
         {isLastTab && (
           <div className="rounded-[var(--radius-md)] border border-border bg-surface-raised p-4 shadow-xs">

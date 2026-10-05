@@ -59,7 +59,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             href={`/api/sessions/${session.id}/export/panelist-data`}
             className="rounded-full border border-border px-3.5 py-1.5 text-xs font-semibold text-text-muted transition-colors hover:border-brand-primary/40 hover:bg-brand-primary-soft hover:text-brand-primary-strong"
           >
-            ⬇ Detailed panelist data (CSV)
+            ⬇ Detailed panelist data (XLSX)
           </a>
           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[session.status]}`}>
             {session.status}

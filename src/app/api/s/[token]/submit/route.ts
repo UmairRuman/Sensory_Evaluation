@@ -6,6 +6,7 @@ const submitSchema = z.object({
   panelistVisitId: z.string().min(1),
   sampleId: z.string().min(1),
   scores: z.record(z.string(), z.number().int().min(1).max(5)),
+  remarks: z.record(z.string(), z.string().max(500)).optional(),
   comment: z.string().optional(),
 });
 
@@ -16,12 +17,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid submission." }, { status: 400 });
   }
-  const { panelistVisitId, sampleId, scores, comment } = parsed.data;
+  const { panelistVisitId, sampleId, scores, remarks, comment } = parsed.data;
 
   const session = await prisma.session.findUnique({
     where: { publicToken: token },
     include: {
       sessionAttributes: { where: { enabled: true }, select: { attributeId: true } },
+      sessionSections: { select: { id: true } },
     },
   });
   if (!session) {
@@ -52,6 +54,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return NextResponse.json({ error: "All mandatory parameters must be scored." }, { status: 400 });
   }
 
+  const validSectionIds = new Set(session.sessionSections.map((ss) => ss.id));
+  const remarkEntries = Object.entries(remarks ?? {})
+    .map(([sessionSectionId, text]) => [sessionSectionId, text.trim()] as const)
+    .filter(([, text]) => text.length > 0);
+  if (remarkEntries.some(([sessionSectionId]) => !validSectionIds.has(sessionSectionId))) {
+    return NextResponse.json({ error: "Invalid remark section." }, { status: 400 });
+  }
+
   const existing = await prisma.submission.findUnique({
     where: { panelistVisitId_sampleId: { panelistVisitId, sampleId } },
   });
@@ -66,6 +76,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       comment: comment || null,
       scores: {
         create: submittedAttributeIds.map((attributeId) => ({ attributeId, value: scores[attributeId] })),
+      },
+      remarks: {
+        create: remarkEntries.map(([sessionSectionId, text]) => ({ sessionSectionId, text })),
       },
     },
   });

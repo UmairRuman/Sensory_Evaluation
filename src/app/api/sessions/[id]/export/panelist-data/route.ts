@@ -1,11 +1,13 @@
+import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { toCsv } from "@/lib/csv";
+import { fetchProductRemarks } from "@/lib/scoring/remarks";
+import { isUrduText } from "@/lib/text/urdu";
 
-// Raw panelist-level export: one row per submission (panelist x sample), one column per scored
-// attribute. This is an internal data-access feature, separate from any branded/summary report —
-// it deliberately includes panelist identity, unlike distributed reports which omit it.
+// Internal data-access export: Panelist Data deliberately includes panelist identity (unlike
+// distributed reports), but the Remarks sheet never does — it identifies panelists only by their
+// anonymous in-session code, matching the privacy rule applied everywhere else remarks surface.
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user || session.user.role !== "ADMIN") {
@@ -27,13 +29,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     orderBy: { sortOrder: "asc" },
   });
   const sectionOrderById = new Map(sessionSections.map((ss, idx) => [ss.sectionId, idx]));
+  const sectionLetterById = new Map(sessionSections.map((ss) => [ss.sectionId, ss.letter]));
 
   const sessionAttributesRaw = await prisma.sessionAttribute.findMany({
     where: { sessionId: id, enabled: true },
     include: { attribute: { select: { sectionId: true } } },
     orderBy: { sortOrder: "asc" },
   });
-  const sectionLetterById = new Map(sessionSections.map((ss) => [ss.sectionId, ss.letter]));
   const sessionAttributes = [...sessionAttributesRaw].sort(
     (a, b) => (sectionOrderById.get(a.attribute.sectionId) ?? 0) - (sectionOrderById.get(b.attribute.sectionId) ?? 0)
   );
@@ -48,7 +50,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     orderBy: { submittedAt: "asc" },
   });
 
-  const header = [
+  const workbook = new ExcelJS.Workbook();
+
+  const panelistSheet = workbook.addWorksheet("Panelist Data");
+  panelistSheet.addRow([
     "Panelist Name",
     "Age",
     "Gender",
@@ -59,11 +64,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     "Submitted At",
     ...sessionAttributes.map((sa) => `${sectionLetterById.get(sa.attribute.sectionId) ?? "?"}. ${sa.name}`),
     "Comment",
-  ];
-
-  const rows = submissions.map((sub) => {
+  ]);
+  for (const sub of submissions) {
     const scoreByAttr = new Map(sub.scores.map((s) => [s.attributeId, s.value]));
-    return [
+    panelistSheet.addRow([
       sub.panelistVisit.name,
       sub.panelistVisit.age,
       sub.panelistVisit.gender,
@@ -73,17 +77,87 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       sub.sample.sampleCode,
       sub.submittedAt.toISOString(),
       ...sessionAttributes.map((sa) => scoreByAttr.get(sa.attributeId) ?? ""),
-      sub.comment,
-    ];
+      sub.comment ?? "",
+    ]);
+  }
+  panelistSheet.columns.forEach((col) => {
+    col.width = 16;
   });
 
-  const csv = toCsv([header, ...rows]);
+  const sessionProducts = await prisma.sessionProduct.findMany({
+    where: { sessionId: id },
+    include: { product: true },
+    orderBy: { sortOrder: "asc" },
+  });
+
+  const remarksSheet = workbook.addWorksheet("Remarks");
+  remarksSheet.addRow(["Product", "Section", "Panelist Code", "Sample", "Remark"]);
+
+  const summarySheet = workbook.addWorksheet("Remarks Summary");
+  summarySheet.addRow(["Product", "Section", "Summary", "Tone", "Edited", "Generated At"]);
+
+  for (const sp of sessionProducts) {
+    const { sections } = await fetchProductRemarks(sp.id);
+
+    for (const section of sections) {
+      for (const r of section.remarks) {
+        const row = remarksSheet.addRow([
+          sp.product.name,
+          `${section.letter}. ${section.name}`,
+          r.anonymousCode,
+          r.sampleName,
+          r.text,
+        ]);
+        applyRemarkTextAlignment(row.getCell(5), r.text);
+      }
+    }
+
+    const summaries = await prisma.remarkSummary.findMany({ where: { sessionProductId: sp.id } });
+    const overallSummary = summaries.find((s) => s.sessionSectionId === null);
+    if (overallSummary) {
+      addSummaryRow(summarySheet, sp.product.name, "Overall", overallSummary);
+    }
+    for (const section of sections) {
+      const sectionSummary = summaries.find((s) => s.sessionSectionId === section.sessionSectionId);
+      if (sectionSummary) {
+        addSummaryRow(summarySheet, sp.product.name, `${section.letter}. ${section.name}`, sectionSummary);
+      }
+    }
+  }
+
+  remarksSheet.columns = [{ width: 24 }, { width: 22 }, { width: 14 }, { width: 18 }, { width: 60 }];
+  summarySheet.columns = [{ width: 24 }, { width: 22 }, { width: 60 }, { width: 12 }, { width: 10 }, { width: 22 }];
+
+  const buffer = await workbook.xlsx.writeBuffer();
   const safeName = dbSession.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
 
-  return new NextResponse(csv, {
+  return new NextResponse(buffer, {
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${safeName}-panelist-data.csv"`,
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `attachment; filename="${safeName}-panelist-data.xlsx"`,
     },
   });
+}
+
+function applyRemarkTextAlignment(cell: ExcelJS.Cell, text: string) {
+  cell.alignment = isUrduText(text)
+    ? { horizontal: "right", wrapText: true, readingOrder: "rtl" }
+    : { wrapText: true };
+}
+
+function addSummaryRow(
+  sheet: ExcelJS.Worksheet,
+  productName: string,
+  sectionLabel: string,
+  summary: { summaryText: string; tone: string | null; editedFlag: boolean; generatedAt: Date }
+) {
+  const row = sheet.addRow([
+    productName,
+    sectionLabel,
+    summary.summaryText,
+    summary.tone ?? "",
+    summary.editedFlag ? "Yes" : "No",
+    summary.generatedAt.toISOString(),
+  ]);
+  applyRemarkTextAlignment(row.getCell(3), summary.summaryText);
 }

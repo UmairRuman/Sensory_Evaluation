@@ -80,6 +80,7 @@ export default async function ScoringPage({
   }
   const sections = session.sessionSections.map((ss) => ({
     id: ss.sectionId,
+    sessionSectionId: ss.id, // the FK remarks attach to — distinct from the live Section id above
     letter: ss.letter,
     name: ss.name,
     attributes: (attributesBySection.get(ss.sectionId) ?? []).map((sa) => ({
