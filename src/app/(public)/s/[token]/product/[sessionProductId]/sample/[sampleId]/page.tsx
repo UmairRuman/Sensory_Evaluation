@@ -21,9 +21,10 @@ export default async function ScoringPage({
   const session = await prisma.session.findUnique({
     where: { publicToken: token },
     include: {
+      category: { select: { title: true } },
       sessionProducts: {
         orderBy: { sortOrder: "asc" },
-        include: { product: true, samples: { orderBy: { sortOrder: "asc" } } },
+        include: { samples: { orderBy: { sortOrder: "asc" } } },
       },
       sessionSections: {
         where: { enabled: true },
@@ -100,8 +101,8 @@ export default async function ScoringPage({
       token={token}
       panelistVisitId={pv}
       sampleId={sampleId}
-      sampleName={sample.sampleName}
-      productName={sessionProduct.product.name}
+      sampleCode={sample.sampleCode}
+      categoryTitle={session.category.title}
       sections={sections}
       progress={{ current: progress, total: flat.length }}
       nextHref={nextHref}

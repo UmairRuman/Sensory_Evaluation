@@ -5,7 +5,6 @@ import type { Category } from "@prisma/client";
 import { fetchCategoryMasterfile } from "@/lib/actions/masterfile";
 import { createAndPublishSession } from "@/lib/actions/sessions";
 import type { CategoryMasterfile } from "@/lib/masterfile/queries";
-import { attributeAppliesToProduct } from "@/lib/masterfile/applicability";
 
 const REGIONS = ["Central", "North-1", "North II", "South"];
 const ENTITIES = ["ARF/QIE/MDK", "ATA", "DFF"];
@@ -109,16 +108,13 @@ export function SessionWizard({ categories }: { categories: Category[] }) {
     );
   }
 
+  // Shows every active parent parameter and all its sub-parameters for the category, regardless of
+  // which product/SKU is selected — per-product applicability no longer hides anything here; the
+  // admin picks the full set manually via these checkboxes instead.
   const applicableSections = useMemo(() => {
     if (!masterfile) return [];
-    const productIds = selectedProducts.map((p) => p.productId);
-    return masterfile.sections
-      .map((section) => ({
-        ...section,
-        attributes: section.attributes.filter((attr) => productIds.some((pid) => attributeAppliesToProduct(attr, pid))),
-      }))
-      .filter((section) => section.attributes.length > 0);
-  }, [masterfile, selectedProducts]);
+    return masterfile.sections.filter((section) => section.attributes.length > 0);
+  }, [masterfile]);
 
   function toggleAttribute(attributeId: string, kind: string) {
     if (kind === "OVERALL_HEDONIC") return; // always required
@@ -126,6 +122,34 @@ export function SessionWizard({ categories }: { categories: Category[] }) {
       const next = new Set(prev);
       if (next.has(attributeId)) next.delete(attributeId);
       else next.add(attributeId);
+      return next;
+    });
+  }
+
+  function toggleSection(section: CategoryMasterfile["sections"][number], enable: boolean) {
+    setDisabledAttributeIds((prev) => {
+      const next = new Set(prev);
+      for (const attr of section.attributes) {
+        if (attr.kind === "OVERALL_HEDONIC") continue;
+        if (enable) next.delete(attr.id);
+        else next.add(attr.id);
+      }
+      return next;
+    });
+  }
+
+  function selectAllAttributes() {
+    setDisabledAttributeIds(new Set());
+  }
+
+  function clearAllAttributes() {
+    setDisabledAttributeIds(() => {
+      const next = new Set<string>();
+      for (const section of applicableSections) {
+        for (const attr of section.attributes) {
+          if (attr.kind !== "OVERALL_HEDONIC") next.add(attr.id);
+        }
+      }
       return next;
     });
   }
@@ -138,6 +162,22 @@ export function SessionWizard({ categories }: { categories: Category[] }) {
     if (selectedProducts.some((p) => p.samples.length === 0)) {
       setError("Every selected product needs at least one sample.");
       return;
+    }
+    // Codes must be unique across the whole session (not just within one product) since panelists
+    // never see which product a code belongs to — a collision would silently merge two samples.
+    const allCodes = selectedProducts.flatMap((p) => p.samples.map((s) => s.sampleCode.trim()));
+    if (allCodes.some((c) => c.length === 0)) {
+      setError("Every sample needs a code before continuing.");
+      return;
+    }
+    const seen = new Set<string>();
+    for (const code of allCodes) {
+      const key = code.toLowerCase();
+      if (seen.has(key)) {
+        setError(`Sample code "${code}" is used more than once — codes must be unique within a session.`);
+        return;
+      }
+      seen.add(key);
     }
     setError(null);
     setStep(4);
@@ -239,6 +279,9 @@ export function SessionWizard({ categories }: { categories: Category[] }) {
               <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-brand-primary-strong">
                 {product.productName} — samples
               </h3>
+              <p className="mt-0.5 text-xs text-text-muted">
+                Panelists see only the code, never the product name — avoid codes that identify it.
+              </p>
               <div className="mt-3 flex flex-col gap-2">
                 {product.samples.map((sample, idx) => (
                   <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
@@ -251,8 +294,11 @@ export function SessionWizard({ categories }: { categories: Category[] }) {
                     <input
                       value={sample.sampleCode}
                       onChange={(e) => updateSample(product.productId, idx, { sampleCode: e.target.value })}
-                      placeholder="Code"
-                      className="rounded-[var(--radius-sm)] border border-border bg-surface px-2.5 py-2 text-sm outline-none transition-colors focus:border-brand-primary focus:ring-2 focus:ring-brand-accent/30"
+                      placeholder="Code *"
+                      required
+                      className={`rounded-[var(--radius-sm)] border bg-surface px-2.5 py-2 text-sm outline-none transition-colors focus:border-brand-primary focus:ring-2 focus:ring-brand-accent/30 ${
+                        sample.sampleCode.trim() ? "border-border" : "border-status-danger/50"
+                      }`}
                     />
                     <input
                       value={sample.brandName}
@@ -346,16 +392,42 @@ export function SessionWizard({ categories }: { categories: Category[] }) {
           </label>
 
           <div>
-            <h3 className="mb-2 font-[family-name:var(--font-display)] text-sm uppercase tracking-wide text-text-muted">
-              Customize parameters
-            </h3>
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="font-[family-name:var(--font-display)] text-sm uppercase tracking-wide text-text-muted">
+                Customize parameters
+              </h3>
+              <div className="flex items-center gap-3 text-xs font-semibold">
+                <button type="button" onClick={selectAllAttributes} className="text-brand-primary hover:underline">
+                  Select all
+                </button>
+                <button type="button" onClick={clearAllAttributes} className="text-text-muted hover:underline">
+                  Clear all
+                </button>
+              </div>
+            </div>
             <div className="flex flex-col gap-4">
-              {applicableSections.map((section) => (
-                <div key={section.id} className="rounded-[var(--radius-md)] border border-border bg-surface-raised p-4 shadow-xs">
-                  <p className="mb-2 font-[family-name:var(--font-display)] font-semibold text-brand-primary-strong">
-                    {section.letter}. {section.name}
-                  </p>
-                  <div className="flex flex-col gap-1.5">
+              {applicableSections.map((section) => {
+                const toggleable = section.attributes.filter((a) => a.kind !== "OVERALL_HEDONIC");
+                const enabledCount = toggleable.filter((a) => !disabledAttributeIds.has(a.id)).length;
+                const allEnabled = toggleable.length === 0 || enabledCount === toggleable.length;
+                const someEnabled = enabledCount > 0 && enabledCount < toggleable.length;
+                return (
+                  <div key={section.id} className="rounded-[var(--radius-md)] border border-border bg-surface-raised p-4 shadow-xs">
+                    <label className="mb-2 flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={allEnabled}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someEnabled;
+                        }}
+                        disabled={toggleable.length === 0}
+                        onChange={() => toggleSection(section, !allEnabled)}
+                      />
+                      <span className="font-[family-name:var(--font-display)] font-semibold text-brand-primary-strong">
+                        {section.letter}. {section.name}
+                      </span>
+                    </label>
+                    <div className="flex flex-col gap-1.5">
                     {section.attributes.map((attr) => {
                       const disabled = disabledAttributeIds.has(attr.id);
                       const locked = attr.kind === "OVERALL_HEDONIC";
@@ -379,9 +451,10 @@ export function SessionWizard({ categories }: { categories: Category[] }) {
                         </label>
                       );
                     })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

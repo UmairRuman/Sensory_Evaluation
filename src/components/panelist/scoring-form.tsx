@@ -34,8 +34,8 @@ export function ScoringForm({
   token,
   panelistVisitId,
   sampleId,
-  sampleName,
-  productName,
+  sampleCode,
+  categoryTitle,
   sections,
   progress,
   nextHref,
@@ -43,8 +43,8 @@ export function ScoringForm({
   token: string;
   panelistVisitId: string;
   sampleId: string;
-  sampleName: string;
-  productName: string;
+  sampleCode: string;
+  categoryTitle: string;
   sections: SectionDef[];
   progress: { current: number; total: number };
   nextHref: string;
@@ -91,7 +91,7 @@ export function ScoringForm({
         setSubmitting(false);
         return;
       }
-      toast.success(`${sampleName} scored`);
+      toast.success(`${sampleCode} scored`);
       router.push(nextHref);
     } catch {
       setError("Network error — please check your connection and try again.");
@@ -105,9 +105,9 @@ export function ScoringForm({
     <div className="mx-auto flex min-h-screen max-w-lg flex-col bg-surface pb-28">
       <header className="hero-surface sticky top-0 z-10 px-5 pb-4 pt-5 text-text-on-brand">
         <p className="font-[family-name:var(--font-display)] text-[10px] font-medium uppercase tracking-[0.18em] text-brand-accent-soft">
-          {productName}
+          {categoryTitle}
         </p>
-        <h1 className="font-[family-name:var(--font-display)] text-xl font-semibold">{sampleName}</h1>
+        <h1 className="font-[family-name:var(--font-display)] text-xl font-semibold">Sample {sampleCode}</h1>
         <p className="mt-0.5 text-xs text-text-on-brand/75">
           Sample {progress.current} of {progress.total} · {scoredCount}/{totalAttributes} attributes scored
         </p>

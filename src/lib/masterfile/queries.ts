@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-export { attributeAppliesToProduct } from "./applicability";
 
 export async function listCategories() {
   return prisma.category.findMany({

@@ -8,7 +8,7 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
 
   const session = await prisma.session.findUnique({
     where: { publicToken: token },
-    include: { category: true, sessionProducts: { include: { product: true, samples: true } } },
+    include: { category: true, sessionProducts: { include: { samples: true } } },
   });
 
   if (!session) {
@@ -34,7 +34,8 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
           {session.name}
         </h1>
         <p className="mt-1 text-sm text-text-on-brand/75">
-          {session.category.title} · {session.sessionProducts.map((sp) => sp.product.name).join(", ")}
+          {session.category.title} ·{" "}
+          {session.sessionProducts.reduce((n, sp) => n + sp.samples.length, 0)} samples to evaluate
         </p>
       </div>
 
